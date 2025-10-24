@@ -63,16 +63,12 @@ const EventDetails = () => {
     }
 
     setRegistering(true);
+    navigate('/dashboard');
     try {
       await api.post(`/registrations/${id}`);
       toast.success('Successfully registered for the event!');
       setIsRegistered(true);
       fetchEventDetails(); // Refresh event details
-      try {
-        navigate('/dashboard');
-      } catch (navError) {
-        window.location.href = '/dashboard';
-      }
     } catch (error) {
       const message = error.response?.data?.message || 'Failed to register';
       toast.error(message);
