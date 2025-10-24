@@ -63,9 +63,9 @@ const EventDetails = () => {
     }
 
     setRegistering(true);
-    navigate('/dashboard');
     try {
       await api.post(`/registrations/${id}`);
+      navigate('/dashboard');
       toast.success('Successfully registered for the event!');
       setIsRegistered(true);
       fetchEventDetails(); // Refresh event details
