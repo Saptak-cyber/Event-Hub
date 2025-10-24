@@ -65,7 +65,7 @@ const registrationSchema = new mongoose.Schema({
 });
 
 // Compound index to prevent duplicate registrations
-registrationSchema.index({ event: 1, user: 1 }, { unique: true });
+// registrationSchema.index({ event: 1, user: 1 }, { unique: true });
 
 // Index for faster queries
 registrationSchema.index({ user: 1, status: 1 });

@@ -68,6 +68,7 @@ const EventDetails = () => {
       toast.success('Successfully registered for the event!');
       setIsRegistered(true);
       fetchEventDetails(); // Refresh event details
+      navigate('/dashboard');
     } catch (error) {
       const message = error.response?.data?.message || 'Failed to register';
       toast.error(message);
