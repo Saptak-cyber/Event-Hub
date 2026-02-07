@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Calendar, MapPin, Clock, X, ExternalLink } from 'lucide-react';
+import { Calendar, MapPin, Clock, X, ExternalLink, Ticket } from 'lucide-react';
 import { format } from 'date-fns';
 import api from '../utils/api';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -211,6 +211,16 @@ const UserDashboard = () => {
                         <ExternalLink className="w-4 h-4" />
                         <span>View Details</span>
                       </Link>
+                      
+                      {registration.status === 'confirmed' && (
+                        <Link
+                          to={`/ticket/${registration._id}`}
+                          className="px-3 py-2 bg-purple-100 text-purple-800 rounded-lg hover:bg-purple-200 transition-colors text-sm font-medium flex items-center space-x-1"
+                        >
+                          <Ticket className="w-4 h-4" />
+                          <span>View Ticket</span>
+                        </Link>
+                      )}
                       
                       {registration.status === 'confirmed' && !registration.addedToCalendar && (
                         <button

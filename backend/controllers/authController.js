@@ -1,6 +1,8 @@
 import User from '../models/User.js';
 import { sendTokenResponse } from '../middleware/auth.js';
 import { getTokensFromCode,getAuthUrl } from '../config/googleCalendar.js';
+import { sendVerificationEmail, sendPasswordResetEmail } from '../config/email.js';
+import crypto from 'crypto';
 
 // @desc    Register user
 // @route   POST /api/auth/register
@@ -26,6 +28,13 @@ export const register = async (req, res) => {
       password,
       role: role || 'user'
     });
+
+    // Generate verification token
+    const verificationToken = user.generateVerificationToken();
+    await user.save();
+
+    // Send verification email
+    await sendVerificationEmail(user.email, user.name, verificationToken);
 
     sendTokenResponse(user, 201, res);
   } catch (error) {
@@ -274,6 +283,165 @@ export const getGoogleAuthUrl = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to generate Google auth URL: ' + error.message
+    });
+  }
+};
+
+// @desc    Verify email
+// @route   GET /api/auth/verify-email/:token
+// @access  Public
+export const verifyEmail = async (req, res) => {
+  try {
+    const { token } = req.params;
+
+    // Hash the token to compare with stored token
+    const hashedToken = crypto
+      .createHash('sha256')
+      .update(token)
+      .digest('hex');
+
+    const user = await User.findOne({
+      resetPasswordToken: hashedToken,
+      resetPasswordExpire: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid or expired verification token'
+      });
+    }
+
+    // Update user as verified
+    user.isEmailVerified = true;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpire = undefined;
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Email verified successfully'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// @desc    Resend verification email
+// @route   POST /api/auth/resend-verification
+// @access  Private
+export const resendVerification = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+
+    if (user.isEmailVerified) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email is already verified'
+      });
+    }
+
+    // Generate new verification token
+    const verificationToken = user.generateVerificationToken();
+    await user.save();
+
+    // Send verification email
+    await sendVerificationEmail(user.email, user.name, verificationToken);
+
+    res.status(200).json({
+      success: true,
+      message: 'Verification email sent successfully'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// @desc    Forgot password
+// @route   POST /api/auth/forgot-password
+// @access  Public
+export const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'No user found with that email'
+      });
+    }
+
+    // Generate reset token
+    const resetToken = user.generatePasswordResetToken();
+    await user.save();
+
+    // Send password reset email
+    await sendPasswordResetEmail(user.email, user.name, resetToken);
+
+    res.status(200).json({
+      success: true,
+      message: 'Password reset email sent'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// @desc    Reset password
+// @route   PUT /api/auth/reset-password/:token
+// @access  Public
+export const resetPassword = async (req, res) => {
+  try {
+    const { token } = req.params;
+    const { password } = req.body;
+
+    if (!password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide a new password'
+      });
+    }
+
+    // Hash the token to compare with stored token
+    const hashedToken = crypto
+      .createHash('sha256')
+      .update(token)
+      .digest('hex');
+
+    const user = await User.findOne({
+      resetPasswordToken: hashedToken,
+      resetPasswordExpire: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid or expired reset token'
+      });
+    }
+
+    // Set new password
+    user.password = password;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpire = undefined;
+    await user.save();
+
+    sendTokenResponse(user, 200, res);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
     });
   }
 };

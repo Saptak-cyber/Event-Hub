@@ -15,6 +15,7 @@ import { format } from 'date-fns';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import LoadingSpinner from '../components/LoadingSpinner';
+import PaymentModal from '../components/PaymentModal';
 import toast from 'react-hot-toast';
 
 const EventDetails = () => {
@@ -25,6 +26,7 @@ const EventDetails = () => {
   const [loading, setLoading] = useState(true);
   const [registering, setRegistering] = useState(false);
   const [isRegistered, setIsRegistered] = useState(false);
+  const [showPayment, setShowPayment] = useState(false);
 
   useEffect(() => {
     fetchEventDetails();
@@ -62,19 +64,33 @@ const EventDetails = () => {
       return;
     }
 
+    // If event requires payment, show payment modal
+    if (event.isPaid && event.price > 0) {
+      setShowPayment(true);
+      return;
+    }
+
+    // Free event registration
     setRegistering(true);
     try {
       await api.post(`/registrations/${id}`);
-      navigate('/dashboard');
       toast.success('Successfully registered for the event!');
       setIsRegistered(true);
       fetchEventDetails(); // Refresh event details
+      navigate('/dashboard');
     } catch (error) {
       const message = error.response?.data?.message || 'Failed to register';
       toast.error(message);
     } finally {
       setRegistering(false);
     }
+  };
+
+  const handlePaymentSuccess = () => {
+    setShowPayment(false);
+    toast.success('Payment successful! You are now registered.');
+    setIsRegistered(true);
+    navigate('/dashboard');
   };
 
   if (loading) {
@@ -291,6 +307,17 @@ const EventDetails = () => {
           </div>
         </div>
       </div>
+
+      {/* Payment Modal */}
+      {showPayment && (
+        <PaymentModal
+          eventId={event._id}
+          eventTitle={event.title}
+          amount={event.price}
+          onSuccess={handlePaymentSuccess}
+          onCancel={() => setShowPayment(false)}
+        />
+      )}
     </div>
   );
 };

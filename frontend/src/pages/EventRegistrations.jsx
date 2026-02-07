@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Users, CheckCircle, Clock, XCircle, Mail, Phone, Download } from 'lucide-react';
+import { ArrowLeft, Users, CheckCircle, Clock, XCircle, Mail, Phone, Download, QrCode, DollarSign, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 import api from '../utils/api';
 import LoadingSpinner from '../components/LoadingSpinner';
 import toast from 'react-hot-toast';
+import { Html5QrcodeScanner } from 'html5-qrcode';
 
 const EventRegistrations = () => {
   const { id } = useParams();
@@ -13,10 +14,60 @@ const EventRegistrations = () => {
   const [registrations, setRegistrations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
+  const [showScanner, setShowScanner] = useState(false);
+  const [scanResult, setScanResult] = useState(null);
+  const [verifyLoading, setVerifyLoading] = useState(false);
+  const [verifiedData, setVerifiedData] = useState(null);
+  const [refundingId, setRefundingId] = useState(null);
+  const scannerRef = useRef(null);
 
   useEffect(() => {
     fetchData();
   }, [id]);
+
+  useEffect(() => {
+    if (!showScanner) {
+      return;
+    }
+
+    const scanner = new Html5QrcodeScanner(
+      'qr-reader',
+      { fps: 10, qrbox: 250 },
+      false
+    );
+
+    scanner.render(
+      async (decodedText) => {
+        setVerifyLoading(true);
+        setScanResult(null);
+        try {
+          const { data } = await api.post('/registrations/verify-qr', {
+            qrData: decodedText
+          });
+          setVerifiedData(data.data.registration);
+          setScanResult({ type: 'success', message: 'Ticket verified successfully.' });
+          await scanner.clear();
+        } catch (error) {
+          setVerifiedData(null);
+          setScanResult({
+            type: 'error',
+            message: error.response?.data?.message || 'Failed to verify QR code'
+          });
+          await scanner.clear();
+        } finally {
+          setVerifyLoading(false);
+        }
+      },
+      () => {}
+    );
+
+    scannerRef.current = scanner;
+
+    return () => {
+      scanner.clear().catch(() => {});
+      scannerRef.current = null;
+    };
+  }, [showScanner]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -44,6 +95,30 @@ const EventRegistrations = () => {
     } catch (error) {
       toast.error('Failed to check in attendee');
     }
+  };
+
+  const handleRefund = async (registrationId) => {
+    if (!window.confirm('Refund this payment? This action cannot be undone.')) {
+      return;
+    }
+
+    setRefundingId(registrationId);
+    try {
+      await api.post(`/payments/refund/${registrationId}`);
+      toast.success('Payment refunded successfully');
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to refund payment');
+    } finally {
+      setRefundingId(null);
+    }
+  };
+
+  const resetScanner = () => {
+    setScanResult(null);
+    setVerifiedData(null);
+    setShowScanner(false);
+    setTimeout(() => setShowScanner(true), 0);
   };
 
   const exportToCSV = () => {
@@ -117,13 +192,26 @@ const EventRegistrations = () => {
                 <span>{event?.location}</span>
               </div>
             </div>
-            <button
-              onClick={exportToCSV}
-              className="btn-primary flex items-center space-x-2"
-            >
-              <Download className="w-4 h-4" />
-              <span>Export CSV</span>
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setScanResult(null);
+                  setVerifiedData(null);
+                  setShowScanner(true);
+                }}
+                className="btn-secondary flex items-center space-x-2"
+              >
+                <QrCode className="w-4 h-4" />
+                <span>Scan QR</span>
+              </button>
+              <button
+                onClick={exportToCSV}
+                className="btn-primary flex items-center space-x-2"
+              >
+                <Download className="w-4 h-4" />
+                <span>Export CSV</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -199,6 +287,9 @@ const EventRegistrations = () => {
                       Status
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Payment
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Registered
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -245,6 +336,20 @@ const EventRegistrations = () => {
                           {registration.status}
                         </span>
                       </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {registration.paymentStatus === 'completed' ? (
+                          <div className="flex items-center gap-2 text-green-700">
+                            <DollarSign className="w-4 h-4" />
+                            <span className="text-sm font-medium">${registration.amount}</span>
+                          </div>
+                        ) : registration.paymentStatus === 'refunded' ? (
+                          <span className="text-sm text-red-600">Refunded</span>
+                        ) : registration.paymentStatus === 'pending' ? (
+                          <span className="text-sm text-yellow-600">Pending</span>
+                        ) : (
+                          <span className="text-sm text-gray-500">Free</span>
+                        )}
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {format(new Date(registration.registeredAt), 'PPP')}
                       </td>
@@ -262,14 +367,32 @@ const EventRegistrations = () => {
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        {registration.status === 'confirmed' && !registration.checkInStatus && (
-                          <button
-                            onClick={() => handleCheckIn(registration._id)}
-                            className="text-primary-600 hover:text-primary-900"
-                          >
-                            Check In
-                          </button>
-                        )}
+                        <div className="flex items-center gap-3">
+                          {registration.status === 'confirmed' && !registration.checkInStatus && (
+                            <button
+                              onClick={() => handleCheckIn(registration._id)}
+                              className="text-primary-600 hover:text-primary-900"
+                            >
+                              Check In
+                            </button>
+                          )}
+                          {registration.paymentStatus === 'completed' && (
+                            <button
+                              onClick={() => handleRefund(registration._id)}
+                              disabled={refundingId === registration._id}
+                              className="text-red-600 hover:text-red-900"
+                            >
+                              {refundingId === registration._id ? (
+                                <span className="inline-flex items-center gap-1">
+                                  <RefreshCw className="w-4 h-4 animate-spin" />
+                                  Refunding
+                                </span>
+                              ) : (
+                                'Refund'
+                              )}
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -278,6 +401,74 @@ const EventRegistrations = () => {
             </div>
           )}
         </div>
+
+        {showScanner && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">Scan Ticket QR</h2>
+                  <p className="text-sm text-gray-500">Point the camera at the ticket QR code</p>
+                </div>
+                <button
+                  onClick={() => setShowScanner(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <XCircle className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-6">
+                <div>
+                  <div id="qr-reader" className="w-full"></div>
+                  {verifyLoading && (
+                    <div className="mt-3 text-sm text-gray-500">Verifying...</div>
+                  )}
+                  {scanResult && (
+                    <div className={`mt-3 p-3 rounded-lg text-sm ${
+                      scanResult.type === 'success'
+                        ? 'bg-green-50 text-green-700 border border-green-200'
+                        : 'bg-red-50 text-red-700 border border-red-200'
+                    }`}>
+                      {scanResult.message}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900 mb-2">Verification Result</h3>
+                  {verifiedData ? (
+                    <div className="space-y-2 text-sm text-gray-700">
+                      <p><span className="font-medium">Ticket:</span> {verifiedData.ticketNumber}</p>
+                      <p><span className="font-medium">Attendee:</span> {verifiedData.user?.name}</p>
+                      <p><span className="font-medium">Email:</span> {verifiedData.user?.email}</p>
+                      <p><span className="font-medium">Event:</span> {verifiedData.event?.title}</p>
+                      <p><span className="font-medium">Checked In:</span> {verifiedData.checkInStatus ? 'Yes' : 'No'}</p>
+
+                      {!verifiedData.checkInStatus && (
+                        <button
+                          onClick={() => handleCheckIn(verifiedData.id)}
+                          className="mt-2 w-full bg-primary-600 text-white py-2 px-4 rounded-lg hover:bg-primary-700"
+                        >
+                          Check In Now
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500">Scan a ticket to see details.</p>
+                  )}
+
+                  <button
+                    onClick={resetScanner}
+                    className="mt-4 w-full bg-gray-100 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-200"
+                  >
+                    Scan Another
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

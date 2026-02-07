@@ -3,6 +3,7 @@ import Event from '../models/Event.js';
 import User from '../models/User.js';
 import { sendRegistrationConfirmation } from '../config/email.js';
 import { addEventToCalendar } from '../config/googleCalendar.js';
+import QRCode from 'qrcode';
 
 // @desc    Register for an event (RSVP)
 // @route   POST /api/registrations/:eventId
@@ -188,6 +189,13 @@ export const cancelRegistration = async (req, res) => {
 // @access  Private
 export const getMyRegistrations = async (req, res) => {
   try {
+    const { page = 1, limit = 10 } = req.query;
+    const pageNum = parseInt(page, 10);
+    const limitNum = parseInt(limit, 10);
+    const skip = (pageNum - 1) * limitNum;
+
+    const totalRegistrations = await Registration.countDocuments({ user: req.user.id });
+
     const registrations = await Registration.find({ user: req.user.id })
       .populate({
         path: 'event',
@@ -196,11 +204,16 @@ export const getMyRegistrations = async (req, res) => {
           select: 'name email'
         }
       })
-      .sort({ registeredAt: -1 });
+      .sort({ registeredAt: -1 })
+      .skip(skip)
+      .limit(limitNum);
 
     res.status(200).json({
       success: true,
       count: registrations.length,
+      total: totalRegistrations,
+      page: pageNum,
+      pages: Math.ceil(totalRegistrations / limitNum),
       data: registrations
     });
   } catch (error) {
@@ -233,13 +246,25 @@ export const getEventRegistrations = async (req, res) => {
       });
     }
 
+    const { page = 1, limit = 20 } = req.query;
+    const pageNum = parseInt(page, 10);
+    const limitNum = parseInt(limit, 10);
+    const skip = (pageNum - 1) * limitNum;
+
+    const totalRegistrations = await Registration.countDocuments({ event: req.params.eventId });
+
     const registrations = await Registration.find({ event: req.params.eventId })
       .populate('user', 'name email phone avatar')
-      .sort({ registeredAt: -1 });
+      .sort({ registeredAt: -1 })
+      .skip(skip)
+      .limit(limitNum);
 
     res.status(200).json({
       success: true,
       count: registrations.length,
+      total: totalRegistrations,
+      page: pageNum,
+      pages: Math.ceil(totalRegistrations / limitNum),
       data: registrations
     });
   } catch (error) {
@@ -493,6 +518,168 @@ export const getRegistration = async (req, res) => {
     res.status(500).json({
       success: false,
       message: error.message
+    });
+  }
+};
+
+// @desc    Generate QR code for registration
+// @route   GET /api/registrations/:registrationId/qrcode
+// @access  Private
+export const generateQRCode = async (req, res) => {
+  try {
+    const registration = await Registration.findById(req.params.registrationId)
+      .populate('event', 'title dateTime location')
+      .populate('user', 'name email');
+
+    if (!registration) {
+      return res.status(404).json({
+        success: false,
+        message: 'Registration not found'
+      });
+    }
+
+    // Make sure user owns this registration
+    if (registration.user._id.toString() !== req.user.id) {
+      return res.status(401).json({
+        success: false,
+        message: 'Not authorized to access this QR code'
+      });
+    }
+
+    if (registration.status !== 'confirmed') {
+      return res.status(400).json({
+        success: false,
+        message: 'QR code is only available for confirmed registrations'
+      });
+    }
+
+    // Generate QR code data
+    const qrData = JSON.stringify({
+      ticketNumber: registration.ticketNumber,
+      registrationId: registration._id,
+      eventId: registration.event._id,
+      eventTitle: registration.event.title,
+      userName: registration.user.name,
+      userEmail: registration.user.email,
+      checkInStatus: registration.checkInStatus
+    });
+
+    // Generate QR code as data URL
+    const qrCodeDataURL = await QRCode.toDataURL(qrData, {
+      errorCorrectionLevel: 'H',
+      type: 'image/png',
+      width: 300,
+      margin: 2
+    });
+
+    // Save QR code to registration if not already saved
+    if (!registration.qrCode) {
+      registration.qrCode = qrCodeDataURL;
+      await registration.save();
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        qrCode: qrCodeDataURL,
+        ticketNumber: registration.ticketNumber,
+        event: registration.event,
+        user: {
+          name: registration.user.name,
+          email: registration.user.email
+        }
+      }
+    });
+  } catch (error) {
+    console.error('QR code generation error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to generate QR code: ' + error.message
+    });
+  }
+};
+
+// @desc    Verify QR code at check-in
+// @route   POST /api/registrations/verify-qr
+// @access  Private/Admin
+export const verifyQRCode = async (req, res) => {
+  try {
+    const { qrData } = req.body;
+
+    if (!qrData) {
+      return res.status(400).json({
+        success: false,
+        message: 'QR code data is required'
+      });
+    }
+
+    // Parse QR data
+    let parsedData;
+    try {
+      parsedData = JSON.parse(qrData);
+    } catch (err) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid QR code format'
+      });
+    }
+
+    const registration = await Registration.findById(parsedData.registrationId)
+      .populate('event', 'title dateTime location organizer')
+      .populate('user', 'name email');
+
+    if (!registration) {
+      return res.status(404).json({
+        success: false,
+        message: 'Registration not found'
+      });
+    }
+
+    // Verify user is event organizer or admin
+    if (
+      registration.event.organizer.toString() !== req.user.id &&
+      req.user.role !== 'admin'
+    ) {
+      return res.status(401).json({
+        success: false,
+        message: 'Not authorized to verify this QR code'
+      });
+    }
+
+    // Verify ticket number matches
+    if (registration.ticketNumber !== parsedData.ticketNumber) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid ticket number'
+      });
+    }
+
+    if (registration.status !== 'confirmed') {
+      return res.status(400).json({
+        success: false,
+        message: `Registration status is ${registration.status}`
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        valid: true,
+        registration: {
+          id: registration._id,
+          ticketNumber: registration.ticketNumber,
+          user: registration.user,
+          event: registration.event,
+          checkInStatus: registration.checkInStatus,
+          checkInTime: registration.checkInTime
+        }
+      }
+    });
+  } catch (error) {
+    console.error('QR verification error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to verify QR code: ' + error.message
     });
   }
 };

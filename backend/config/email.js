@@ -217,3 +217,95 @@ export const sendEventUpdate = async (userEmail, userName, eventDetails, updateM
   return await sendEmail(userEmail, subject, html);
 };
 
+export const sendVerificationEmail = async (userEmail, userName, verificationToken) => {
+  const verificationUrl = `${process.env.FRONTEND_URL}/verify-email/${verificationToken}`;
+  const subject = 'Verify Your Email - Event Management System';
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+        .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+        .button { background: #667eea; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; display: inline-block; margin: 20px 0; }
+        .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>✉️ Verify Your Email</h1>
+        </div>
+        <div class="content">
+          <p>Hi <strong>${userName}</strong>,</p>
+          <p>Thanks for registering with Event Management System! Please verify your email address to activate your account.</p>
+          
+          <a href="${verificationUrl}" class="button">Verify Email Address</a>
+          
+          <p>Or copy and paste this link in your browser:</p>
+          <p style="word-break: break-all; color: #667eea;">${verificationUrl}</p>
+          
+          <p>This link will expire in 24 hours.</p>
+          
+          <p>If you didn't create an account, please ignore this email.</p>
+          
+          <div class="footer">
+            <p>Event Management System | Do not reply to this email</p>
+          </div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  return await sendEmail(userEmail, subject, html);
+};
+
+export const sendPasswordResetEmail = async (userEmail, userName, resetToken) => {
+  const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
+  const subject = 'Password Reset Request - Event Management System';
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+        .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+        .button { background: #f5576c; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; display: inline-block; margin: 20px 0; }
+        .warning { background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 4px; }
+        .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>🔐 Password Reset</h1>
+        </div>
+        <div class="content">
+          <p>Hi <strong>${userName}</strong>,</p>
+          <p>We received a request to reset your password. Click the button below to create a new password:</p>
+          
+          <a href="${resetUrl}" class="button">Reset Password</a>
+          
+          <p>Or copy and paste this link in your browser:</p>
+          <p style="word-break: break-all; color: #f5576c;">${resetUrl}</p>
+          
+          <div class="warning">
+            <strong>⚠️ Security Notice:</strong> This link will expire in 1 hour. If you didn't request a password reset, please ignore this email and your password will remain unchanged.
+          </div>
+          
+          <div class="footer">
+            <p>Event Management System | Do not reply to this email</p>
+          </div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  return await sendEmail(userEmail, subject, html);
+};

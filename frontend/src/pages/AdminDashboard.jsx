@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Calendar, Users, TrendingUp, Edit, Trash2, Eye } from 'lucide-react';
+import { Plus, Calendar, Users, TrendingUp, Edit, Trash2, Eye, BarChart3 } from 'lucide-react';
 import { format } from 'date-fns';
 import api from '../utils/api';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -78,10 +78,16 @@ const AdminDashboard = () => {
             <h1 className="text-4xl font-bold text-gray-900 mb-2">Admin Dashboard</h1>
             <p className="text-gray-600">Manage your events and registrations</p>
           </div>
-          <Link to="/admin/events/create" className="btn-primary flex items-center space-x-2">
-            <Plus className="w-5 h-5" />
-            <span>Create Event</span>
-          </Link>
+          <div className="flex gap-3">
+            <Link to="/admin/analytics" className="btn-secondary flex items-center space-x-2">
+              <BarChart3 className="w-5 h-5" />
+              <span>Analytics</span>
+            </Link>
+            <Link to="/admin/events/create" className="btn-primary flex items-center space-x-2">
+              <Plus className="w-5 h-5" />
+              <span>Create Event</span>
+            </Link>
+          </div>
         </div>
 
         {/* Stats Cards */}

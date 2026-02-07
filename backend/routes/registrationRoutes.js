@@ -6,7 +6,9 @@ import {
   getEventRegistrations,
   checkInAttendee,
   addToGoogleCalendar,
-  getRegistration
+  getRegistration,
+  generateQRCode,
+  verifyQRCode
 } from '../controllers/registrationController.js';
 import { protect, authorize } from '../middleware/auth.js';
 
@@ -21,10 +23,12 @@ router.delete('/:registrationId', cancelRegistration);
 router.get('/my', getMyRegistrations);
 router.get('/:registrationId', getRegistration);
 router.post('/:registrationId/add-to-calendar', addToGoogleCalendar);
+router.get('/:registrationId/qrcode', generateQRCode);
 
 // Admin routes
 router.get('/event/:eventId', authorize('admin'), getEventRegistrations);
 router.put('/:registrationId/checkin', authorize('admin'), checkInAttendee);
+router.post('/verify-qr', authorize('admin'), verifyQRCode);
 
 export default router;
 

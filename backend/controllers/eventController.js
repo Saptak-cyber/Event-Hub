@@ -1,13 +1,15 @@
 import Event from '../models/Event.js';
 import Registration from '../models/Registration.js';
+import User from '../models/User.js';
 import { cloudinary } from '../config/cloudinary.js';
+import { sendEventUpdate } from '../config/email.js';
 
 // @desc    Get all events
 // @route   GET /api/events
 // @access  Public
 export const getEvents = async (req, res) => {
   try {
-    const { category, status, search, fromDate, toDate, visibility } = req.query;
+    const { category, status, search, fromDate, toDate, visibility, page = 1, limit = 10 } = req.query;
     
     let query = {};
 
@@ -50,9 +52,19 @@ export const getEvents = async (req, res) => {
       }
     }
 
+    // Pagination
+    const pageNum = parseInt(page, 10);
+    const limitNum = parseInt(limit, 10);
+    const skip = (pageNum - 1) * limitNum;
+
+    // Get total count for pagination
+    const totalEvents = await Event.countDocuments(query);
+
     const events = await Event.find(query)
       .populate('organizer', 'name email')
       .sort({ dateTime: 1 })
+      .skip(skip)
+      .limit(limitNum)
       .lean();
 
     // Update status for each event
@@ -65,6 +77,9 @@ export const getEvents = async (req, res) => {
     res.status(200).json({
       success: true,
       count: events.length,
+      total: totalEvents,
+      page: pageNum,
+      pages: Math.ceil(totalEvents / limitNum),
       data: events
     });
   } catch (error) {
@@ -151,10 +166,44 @@ export const updateEvent = async (req, res) => {
       });
     }
 
+    // Store old event data for comparison
+    const oldEvent = { ...event.toObject() };
+
     event = await Event.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
       runValidators: true
     });
+
+    // Notify attendees if important details changed
+    const importantChanges = [];
+    if (oldEvent.title !== event.title) importantChanges.push('Event title');
+    if (oldEvent.dateTime.toString() !== event.dateTime.toString()) importantChanges.push('Date/Time');
+    if (oldEvent.location !== event.location) importantChanges.push('Location');
+    if (oldEvent.status !== event.status) importantChanges.push('Status');
+
+    if (importantChanges.length > 0 && event.attendees.length > 0) {
+      // Notify all registered users
+      const attendees = await User.find({ _id: { $in: event.attendees } });
+      const updateMessage = `The following details have been updated: ${importantChanges.join(', ')}`;
+      
+      // Send emails asynchronously
+      attendees.forEach(async (attendee) => {
+        try {
+          await sendEventUpdate(
+            attendee.email,
+            attendee.name,
+            {
+              title: event.title,
+              dateTime: event.dateTime,
+              location: event.location
+            },
+            updateMessage
+          );
+        } catch (emailError) {
+          console.error(`Failed to send update email to ${attendee.email}:`, emailError);
+        }
+      });
+    }
 
     res.status(200).json({
       success: true,
@@ -269,13 +318,25 @@ export const uploadBanner = async (req, res) => {
 // @access  Public
 export const getEventsByOrganizer = async (req, res) => {
   try {
+    const { page = 1, limit = 10 } = req.query;
+    const pageNum = parseInt(page, 10);
+    const limitNum = parseInt(limit, 10);
+    const skip = (pageNum - 1) * limitNum;
+
+    const totalEvents = await Event.countDocuments({ organizer: req.params.id });
+
     const events = await Event.find({ organizer: req.params.id })
       .sort({ dateTime: -1 })
+      .skip(skip)
+      .limit(limitNum)
       .populate('organizer', 'name email');
 
     res.status(200).json({
       success: true,
       count: events.length,
+      total: totalEvents,
+      page: pageNum,
+      pages: Math.ceil(totalEvents / limitNum),
       data: events
     });
   } catch (error) {
@@ -291,13 +352,25 @@ export const getEventsByOrganizer = async (req, res) => {
 // @access  Private/Admin
 export const getMyOrganizedEvents = async (req, res) => {
   try {
+    const { page = 1, limit = 10 } = req.query;
+    const pageNum = parseInt(page, 10);
+    const limitNum = parseInt(limit, 10);
+    const skip = (pageNum - 1) * limitNum;
+
+    const totalEvents = await Event.countDocuments({ organizer: req.user.id });
+
     const events = await Event.find({ organizer: req.user.id })
       .sort({ dateTime: -1 })
+      .skip(skip)
+      .limit(limitNum)
       .populate('attendees', 'name email');
 
     res.status(200).json({
       success: true,
       count: events.length,
+      total: totalEvents,
+      page: pageNum,
+      pages: Math.ceil(totalEvents / limitNum),
       data: events
     });
   } catch (error) {

@@ -7,7 +7,11 @@ import {
   updateDetails,
   updatePassword,
   saveGoogleTokens,
-  getGoogleAuthUrl
+  getGoogleAuthUrl,
+  verifyEmail,
+  resendVerification,
+  forgotPassword,
+  resetPassword
 } from '../controllers/authController.js';
 import { protect } from '../middleware/auth.js';
 
@@ -29,7 +33,14 @@ router.get('/me', protect, getMe);
 router.get('/logout', protect, logout);
 router.put('/updatedetails', protect, updateDetails);
 router.put('/updatepassword', protect, updatePassword);
-// router.post('/google/callback', protect, saveGoogleTokens);
+
+// Email verification routes
+router.get('/verify-email/:token', verifyEmail);
+router.post('/resend-verification', protect, resendVerification);
+
+// Password reset routes
+router.post('/forgot-password', forgotPassword);
+router.put('/reset-password/:token', resetPassword);
 
 export default router;
 

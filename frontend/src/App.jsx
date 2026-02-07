@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import Navbar from './components/Navbar';
+import EmailVerificationBanner from './components/EmailVerificationBanner';
 import ProtectedRoute from './components/ProtectedRoute';
 import LoadingSpinner from './components/LoadingSpinner';
 
@@ -16,6 +17,11 @@ import CreateEvent from './pages/CreateEvent';
 import EditEvent from './pages/EditEvent';
 import EventRegistrations from './pages/EventRegistrations';
 import Profile from './pages/Profile';
+import VerifyEmail from './pages/VerifyEmail';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
+import TicketView from './pages/TicketView';
+import Analytics from './pages/Analytics';
 
 function App() {
   const { loading, isAuthenticated, isAdmin } = useAuth();
@@ -28,6 +34,7 @@ function App() {
     <Router>
       <div className="min-h-screen bg-gray-50">
         <Navbar />
+        <EmailVerificationBanner />
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<Home />} />
@@ -43,6 +50,9 @@ function App() {
             path="/register" 
             element={isAuthenticated ? <Navigate to="/dashboard" /> : <Register />} 
           />
+          <Route path="/verify-email/:token" element={<VerifyEmail />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password/:token" element={<ResetPassword />} />
 
           {/* User Protected Routes */}
           <Route
@@ -61,6 +71,14 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/ticket/:registrationId"
+            element={
+              <ProtectedRoute>
+                <TicketView />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Admin Protected Routes */}
           <Route
@@ -68,6 +86,14 @@ function App() {
             element={
               <ProtectedRoute adminOnly>
                 <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/analytics"
+            element={
+              <ProtectedRoute adminOnly>
+                <Analytics />
               </ProtectedRoute>
             }
           />

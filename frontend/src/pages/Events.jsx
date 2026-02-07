@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Filter } from 'lucide-react';
+import { Search, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
 import api from '../utils/api';
 import EventCard from '../components/EventCard';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -8,6 +8,12 @@ import toast from 'react-hot-toast';
 const Events = () => {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 9,
+    totalPages: 1,
+    total: 0
+  });
   const [filters, setFilters] = useState({
     search: '',
     category: 'all',
@@ -21,7 +27,7 @@ const Events = () => {
 
   useEffect(() => {
     fetchEvents();
-  }, [filters]);
+  }, [filters, pagination.page]);
 
   const fetchEvents = async () => {
     setLoading(true);
@@ -30,9 +36,16 @@ const Events = () => {
       if (filters.search) params.append('search', filters.search);
       if (filters.category !== 'all') params.append('category', filters.category);
       if (filters.status) params.append('status', filters.status);
+      params.append('page', pagination.page);
+      params.append('limit', pagination.limit);
 
       const { data } = await api.get(`/events?${params.toString()}`);
       setEvents(data.data);
+      setPagination(prev => ({
+        ...prev,
+        totalPages: data.pages,
+        total: data.total
+      }));
     } catch (error) {
       toast.error('Failed to fetch events');
       console.error('Error fetching events:', error);
@@ -43,14 +56,31 @@ const Events = () => {
 
   const handleSearchChange = (e) => {
     setFilters({ ...filters, search: e.target.value });
+    setPagination(prev => ({ ...prev, page: 1 })); // Reset to page 1 on filter change
   };
 
   const handleCategoryChange = (e) => {
     setFilters({ ...filters, category: e.target.value });
+    setPagination(prev => ({ ...prev, page: 1 }));
   };
 
   const handleStatusChange = (e) => {
     setFilters({ ...filters, status: e.target.value });
+    setPagination(prev => ({ ...prev, page: 1 }));
+  };
+
+  const handlePreviousPage = () => {
+    if (pagination.page > 1) {
+      setPagination(prev => ({ ...prev, page: prev.page - 1 }));
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handleNextPage = () => {
+    if (pagination.page < pagination.totalPages) {
+      setPagination(prev => ({ ...prev, page: prev.page + 1 }));
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   };
 
   if (loading) {
@@ -133,7 +163,12 @@ const Events = () => {
         {/* Results Count */}
         <div className="mb-6">
           <p className="text-gray-600">
-            Found <span className="font-semibold text-gray-900">{events.length}</span> events
+            Found <span className="font-semibold text-gray-900">{pagination.total}</span> events
+            {pagination.totalPages > 1 && (
+              <span className="ml-2">
+                (Page {pagination.page} of {pagination.totalPages})
+              </span>
+            )}
           </p>
         </div>
 
@@ -151,11 +186,75 @@ const Events = () => {
             </p>
           </div>
         ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {events.map(event => (
-              <EventCard key={event._id} event={event} />
-            ))}
-          </div>
+          <>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {events.map(event => (
+                <EventCard key={event._id} event={event} />
+              ))}
+            </div>
+
+            {/* Pagination Controls */}
+            {pagination.totalPages > 1 && (
+              <div className="mt-8 flex items-center justify-center gap-4">
+                <button
+                  onClick={handlePreviousPage}
+                  disabled={pagination.page === 1}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                    pagination.page === 1
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                      : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
+                  }`}
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                  Previous
+                </button>
+
+                <div className="flex items-center gap-2">
+                  {Array.from({ length: pagination.totalPages }, (_, i) => i + 1)
+                    .filter(page => {
+                      // Show first page, last page, current page, and pages around current
+                      return (
+                        page === 1 ||
+                        page === pagination.totalPages ||
+                        Math.abs(page - pagination.page) <= 1
+                      );
+                    })
+                    .map((page, index, array) => {
+                      // Add ellipsis for gaps
+                      const showEllipsis = index > 0 && page - array[index - 1] > 1;
+                      return (
+                        <div key={page} className="flex items-center gap-2">
+                          {showEllipsis && <span className="text-gray-400">...</span>}
+                          <button
+                            onClick={() => setPagination(prev => ({ ...prev, page }))}
+                            className={`w-10 h-10 rounded-lg font-medium transition-colors ${
+                              pagination.page === page
+                                ? 'bg-primary-600 text-white'
+                                : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
+                            }`}
+                          >
+                            {page}
+                          </button>
+                        </div>
+                      );
+                    })}
+                </div>
+
+                <button
+                  onClick={handleNextPage}
+                  disabled={pagination.page === pagination.totalPages}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                    pagination.page === pagination.totalPages
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                      : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
+                  }`}
+                >
+                  Next
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
