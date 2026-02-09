@@ -47,6 +47,8 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  verificationToken: String,
+  verificationTokenExpire: Date,
   resetPasswordToken: String,
   resetPasswordExpire: Date,
   createdAt: {
@@ -76,13 +78,13 @@ userSchema.methods.comparePassword = async function(enteredPassword) {
 userSchema.methods.generateVerificationToken = function() {
   const verificationToken = crypto.randomBytes(32).toString('hex');
   
-  this.resetPasswordToken = crypto
+  this.verificationToken = crypto
     .createHash('sha256')
     .update(verificationToken)
     .digest('hex');
   
   // Token expires in 24 hours
-  this.resetPasswordExpire = Date.now() + 24 * 60 * 60 * 1000;
+  this.verificationTokenExpire = Date.now() + 24 * 60 * 60 * 1000;
   
   return verificationToken;
 };

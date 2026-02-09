@@ -22,6 +22,7 @@ import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import TicketView from './pages/TicketView';
 import Analytics from './pages/Analytics';
+import GoogleCallback from './pages/GoogleCallback';
 
 function App() {
   const { loading, isAuthenticated, isAdmin } = useAuth();
@@ -32,7 +33,7 @@ function App() {
 
   return (
     <Router>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-background">
         <Navbar />
         <EmailVerificationBanner />
         <Routes>
@@ -53,6 +54,7 @@ function App() {
           <Route path="/verify-email/:token" element={<VerifyEmail />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password/:token" element={<ResetPassword />} />
+          <Route path="/auth/google/callback" element={<GoogleCallback />} />
 
           {/* User Protected Routes */}
           <Route

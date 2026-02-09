@@ -33,8 +33,13 @@ export const register = async (req, res) => {
     const verificationToken = user.generateVerificationToken();
     await user.save();
 
-    // Send verification email
-    await sendVerificationEmail(user.email, user.name, verificationToken);
+    // Send verification email (non-blocking)
+    try {
+      await sendVerificationEmail(user.email, user.name, verificationToken);
+    } catch (emailError) {
+      console.error('Failed to send verification email:', emailError.message);
+      // Continue with registration even if email fails
+    }
 
     sendTokenResponse(user, 201, res);
   } catch (error) {

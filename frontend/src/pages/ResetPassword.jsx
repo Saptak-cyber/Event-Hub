@@ -1,126 +1,118 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { Lock, Eye, EyeOff, CheckCircle } from 'lucide-react';
+import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
+import { Label } from '../components/ui/Label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import api from '../utils/api';
+import toast from 'react-hot-toast';
 
 const ResetPassword = () => {
   const { token } = useParams();
   const navigate = useNavigate();
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [formData, setFormData] = useState({ password: '', confirmPassword: '' });
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [tokenValid, setTokenValid] = useState(true);
-
-  useEffect(() => {
-    if (!token) {
-      setTokenValid(false);
-      setError('Invalid reset link');
-    }
-  }, [token]);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (password !== confirmPassword) {
-      setError('Passwords do not match');
+
+    if (formData.password !== formData.confirmPassword) {
+      toast.error('Passwords do not match');
       return;
     }
 
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters');
+    if (formData.password.length < 6) {
+      toast.error('Password must be at least 6 characters');
       return;
     }
 
     setLoading(true);
-    setError(null);
 
     try {
-      await api.put(`/auth/reset-password/${token}`, { password });
-      alert('Password reset successful! Please login with your new password.');
-      navigate('/login');
+      await api.post(`/auth/reset-password/${token}`, { password: formData.password });
+      toast.success('Password reset successful!');
+      setTimeout(() => navigate('/login'), 2000);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to reset password');
+      toast.error(err.response?.data?.message || 'Failed to reset password');
     } finally {
       setLoading(false);
     }
   };
 
-  if (!tokenValid) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-indigo-100 px-4">
-        <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center">
-          <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 mb-4">
-            <svg className="h-10 w-10 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Invalid Reset Link</h2>
-          <p className="text-gray-600 mb-6">{error}</p>
-          <button
-            onClick={() => navigate('/forgot-password')}
-            className="w-full bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors"
-          >
-            Request New Link
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-indigo-100 px-4">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
-        <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">Reset Password</h2>
-          <p className="text-gray-600">Enter your new password</p>
-        </div>
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-background to-background -z-10" />
+      
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="w-full max-w-md"
+      >
+        <Card className="border-2">
+          <CardHeader className="space-y-1">
+            <div className="flex justify-center mb-4">
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
+                <Lock className="w-8 h-8 text-primary-foreground" />
+              </div>
+            </div>
+            <CardTitle className="text-3xl font-bold text-center">Reset Password</CardTitle>
+            <CardDescription className="text-center">
+              Enter your new password below
+            </CardDescription>
+          </CardHeader>
 
-        {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-red-800 text-sm">{error}</p>
-          </div>
-        )}
+          <form onSubmit={handleSubmit}>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="password">New Password</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                  <Input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="Enter new password"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    className="pl-10 pr-10"
+                    required
+                    minLength={6}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
+              </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-              New Password
-            </label>
-            <input
-              type="password"
-              id="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              placeholder="Enter new password"
-            />
-          </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                  <Input
+                    id="confirmPassword"
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="Confirm new password"
+                    value={formData.confirmPassword}
+                    onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                    className="pl-10"
+                    required
+                  />
+                </div>
+              </div>
 
-          <div>
-            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
-              Confirm Password
-            </label>
-            <input
-              type="password"
-              id="confirmPassword"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              placeholder="Confirm new password"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? 'Resetting...' : 'Reset Password'}
-          </button>
-        </form>
-      </div>
+              <Button type="submit" className="w-full" size="lg" disabled={loading}>
+                {loading ? 'Resetting...' : 'Reset Password'}
+              </Button>
+            </CardContent>
+          </form>
+        </Card>
+      </motion.div>
     </div>
   );
 };

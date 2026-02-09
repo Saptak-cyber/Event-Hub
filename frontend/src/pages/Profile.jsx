@@ -1,8 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User as UserIcon, Mail, Phone, Lock, ArrowLeft, Save } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { User as UserIcon, Mail, Phone, Lock, ArrowLeft, Save, Shield, CheckCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
+import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
+import { Label } from '../components/ui/Label';
+import { Card } from '../components/ui/Card';
+import { Badge } from '../components/ui/Badge';
+import { cn } from '../lib/utils';
 import toast from 'react-hot-toast';
 
 const Profile = () => {
@@ -95,273 +102,281 @@ const Profile = () => {
     }
   };
 
+  const tabs = [
+    { id: 'profile', label: 'Profile Information' },
+    { id: 'password', label: 'Change Password' }
+  ];
+
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-background py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <button
+        <motion.button
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          whileHover={{ x: -4 }}
           onClick={() => navigate(-1)}
-          className="flex items-center text-gray-600 hover:text-gray-900 mb-6"
+          className="flex items-center text-muted-foreground hover:text-foreground mb-6 transition-colors"
         >
           <ArrowLeft className="w-5 h-5 mr-2" />
           Back
-        </button>
+        </motion.button>
 
-        <div className="card overflow-hidden">
-          {/* Profile Header */}
-          <div className="bg-gradient-to-r from-primary-600 to-primary-800 px-8 py-12 text-white">
-            <div className="flex items-center space-x-6">
-              <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center">
-                <img
-                  // src={user?.avatar || `https://ui-avatars.com/api/?name=${user?.name}&background=667eea&color=fff&size=200`}
-                  src={`https://ui-avatars.com/api/?name=${user?.name}&background=667eea&color=fff&size=200`}
-                  alt={user?.name}
-                  className="w-24 h-24 rounded-full"
-                />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold mb-2">{user?.name}</h1>
-                <p className="text-primary-100">{user?.email}</p>
-                {user?.role === 'admin' && (
-                  <span className="inline-block mt-2 px-3 py-1 bg-white bg-opacity-20 rounded-full text-sm font-medium">
-                    Event Organizer
-                  </span>
-                )}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <Card className="overflow-hidden p-0">
+            {/* Profile Header */}
+            <div className="bg-gradient-to-r from-primary via-primary/90 to-primary/80 px-8 py-12 text-primary-foreground">
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.1 }}
+                className="flex items-center space-x-6"
+              >
+                <div className="relative">
+                  <div className="w-24 h-24 bg-background rounded-full flex items-center justify-center overflow-hidden ring-4 ring-primary-foreground/20">
+                    <img
+                      src={`https://ui-avatars.com/api/?name=${user?.name}&background=667eea&color=fff&size=200`}
+                      alt={user?.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  {user?.isEmailVerified && (
+                    <div className="absolute -bottom-1 -right-1 bg-green-500 rounded-full p-1">
+                      <CheckCircle className="w-4 h-4 text-white" />
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <h1 className="text-3xl font-bold mb-2">{user?.name}</h1>
+                  <p className="text-primary-foreground/80 mb-2">{user?.email}</p>
+                  <div className="flex items-center gap-2">
+                    {user?.role === 'admin' && (
+                      <Badge className="bg-primary-foreground/20 text-primary-foreground border-primary-foreground/30">
+                        <Shield className="w-3 h-3 mr-1" />
+                        Event Organizer
+                      </Badge>
+                    )}
+                    {user?.isEmailVerified ? (
+                      <Badge className="bg-green-500/20 text-green-100 border-green-500/30">
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        Verified
+                      </Badge>
+                    ) : (
+                      <Badge className="bg-yellow-500/20 text-yellow-100 border-yellow-500/30">
+                        Email not verified
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+
+            {/* Tabs */}
+            <div className="border-b border-border bg-card">
+              <div className="px-8">
+                <nav className="-mb-px flex space-x-8">
+                  {tabs.map((tab, index) => (
+                    <motion.button
+                      key={tab.id}
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.1 + index * 0.05 }}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={cn(
+                        "py-4 px-1 border-b-2 font-medium text-sm transition-colors",
+                        activeTab === tab.id
+                          ? 'border-primary text-primary'
+                          : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
+                      )}
+                    >
+                      {tab.label}
+                    </motion.button>
+                  ))}
+                </nav>
               </div>
             </div>
-          </div>
 
-          {/* Tabs */}
-          <div className="border-b border-gray-200">
-            <div className="px-8">
-              <nav className="-mb-px flex space-x-8">
-                <button
-                  onClick={() => setActiveTab('profile')}
-                  className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                    activeTab === 'profile'
-                      ? 'border-primary-600 text-primary-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
+            {/* Tab Content */}
+            <div className="p-8">
+              {activeTab === 'profile' ? (
+                <motion.form
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  onSubmit={handleProfileSubmit}
+                  className="space-y-6"
                 >
-                  Profile Information
-                </button>
-                <button
-                  onClick={() => setActiveTab('password')}
-                  className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                    activeTab === 'password'
-                      ? 'border-primary-600 text-primary-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4">
+                      Personal Information
+                    </h3>
+
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="name">Full Name</Label>
+                        <div className="relative mt-2">
+                          <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                          <Input
+                            id="name"
+                            name="name"
+                            value={profileData.name}
+                            onChange={handleProfileChange}
+                            className="pl-10"
+                            placeholder="John Doe"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <Label htmlFor="email">Email Address</Label>
+                        <div className="relative mt-2">
+                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                          <Input
+                            id="email"
+                            name="email"
+                            type="email"
+                            value={profileData.email}
+                            onChange={handleProfileChange}
+                            className="pl-10"
+                            placeholder="john@example.com"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <Label htmlFor="phone">Phone Number (Optional)</Label>
+                        <div className="relative mt-2">
+                          <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                          <Input
+                            id="phone"
+                            name="phone"
+                            type="tel"
+                            value={profileData.phone}
+                            onChange={handleProfileChange}
+                            className="pl-10"
+                            placeholder="+1 (555) 123-4567"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <Label>Account Type</Label>
+                        <div className="mt-2 px-4 py-3 bg-muted border border-border rounded-lg text-foreground capitalize">
+                          {user?.role === 'admin' ? 'Event Organizer' : 'User'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end">
+                    <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                      <Button
+                        type="submit"
+                        disabled={loading}
+                        className="flex items-center space-x-2"
+                      >
+                        <Save className="w-4 h-4" />
+                        <span>{loading ? 'Saving...' : 'Save Changes'}</span>
+                      </Button>
+                    </motion.div>
+                  </div>
+                </motion.form>
+              ) : (
+                <motion.form
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  onSubmit={handlePasswordSubmit}
+                  className="space-y-6"
                 >
-                  Change Password
-                </button>
-              </nav>
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4">
+                      Change Password
+                    </h3>
+
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="currentPassword">Current Password</Label>
+                        <div className="relative mt-2">
+                          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                          <Input
+                            id="currentPassword"
+                            name="currentPassword"
+                            type="password"
+                            value={passwordData.currentPassword}
+                            onChange={handlePasswordChange}
+                            className="pl-10"
+                            placeholder="Enter current password"
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <Label htmlFor="newPassword">New Password</Label>
+                        <div className="relative mt-2">
+                          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                          <Input
+                            id="newPassword"
+                            name="newPassword"
+                            type="password"
+                            value={passwordData.newPassword}
+                            onChange={handlePasswordChange}
+                            className="pl-10"
+                            placeholder="Enter new password"
+                            required
+                          />
+                        </div>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          Must be at least 6 characters
+                        </p>
+                      </div>
+
+                      <div>
+                        <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                        <div className="relative mt-2">
+                          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                          <Input
+                            id="confirmPassword"
+                            name="confirmPassword"
+                            type="password"
+                            value={passwordData.confirmPassword}
+                            onChange={handlePasswordChange}
+                            className="pl-10"
+                            placeholder="Confirm new password"
+                            required
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4">
+                    <p className="text-sm text-muted-foreground">
+                      After changing your password, you will remain logged in on this device but may be logged out of other devices.
+                    </p>
+                  </div>
+
+                  <div className="flex justify-end">
+                    <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                      <Button
+                        type="submit"
+                        disabled={loading}
+                        className="flex items-center space-x-2"
+                      >
+                        <Lock className="w-4 h-4" />
+                        <span>{loading ? 'Updating...' : 'Update Password'}</span>
+                      </Button>
+                    </motion.div>
+                  </div>
+                </motion.form>
+              )}
             </div>
-          </div>
-
-          {/* Tab Content */}
-          <div className="p-8">
-            {activeTab === 'profile' ? (
-              <form onSubmit={handleProfileSubmit} className="space-y-6">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                    Personal Information
-                  </h3>
-
-                  <div className="space-y-4">
-                    {/* Name */}
-                    <div>
-                      <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-                        Full Name
-                      </label>
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                          <UserIcon className="h-5 w-5 text-gray-400" />
-                        </div>
-                        <input
-                          type="text"
-                          id="name"
-                          name="name"
-                          value={profileData.name}
-                          onChange={handleProfileChange}
-                          className="input-field pl-10"
-                          placeholder="John Doe"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Email */}
-                    <div>
-                      <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                        Email Address
-                      </label>
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                          <Mail className="h-5 w-5 text-gray-400" />
-                        </div>
-                        <input
-                          type="email"
-                          id="email"
-                          name="email"
-                          value={profileData.email}
-                          onChange={handleProfileChange}
-                          className="input-field pl-10"
-                          placeholder="john@example.com"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Phone */}
-                    <div>
-                      <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
-                        Phone Number (Optional)
-                      </label>
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                          <Phone className="h-5 w-5 text-gray-400" />
-                        </div>
-                        <input
-                          type="tel"
-                          id="phone"
-                          name="phone"
-                          value={profileData.phone}
-                          onChange={handleProfileChange}
-                          className="input-field pl-10"
-                          placeholder="+1 (555) 123-4567"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Role (Read-only) */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Account Type
-                      </label>
-                      <div className="px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-700 capitalize">
-                        {user?.role === 'admin' ? 'Event Organizer' : 'User'}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex justify-end">
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="btn-primary flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <Save className="w-4 h-4" />
-                    <span>{loading ? 'Saving...' : 'Save Changes'}</span>
-                  </button>
-                </div>
-              </form>
-            ) : (
-              <form onSubmit={handlePasswordSubmit} className="space-y-6">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                    Change Password
-                  </h3>
-
-                  <div className="space-y-4">
-                    {/* Current Password */}
-                    <div>
-                      <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-700 mb-2">
-                        Current Password
-                      </label>
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                          <Lock className="h-5 w-5 text-gray-400" />
-                        </div>
-                        <input
-                          type="password"
-                          id="currentPassword"
-                          name="currentPassword"
-                          value={passwordData.currentPassword}
-                          onChange={handlePasswordChange}
-                          className="input-field pl-10"
-                          placeholder="Enter current password"
-                          required
-                        />
-                      </div>
-                    </div>
-
-                    {/* New Password */}
-                    <div>
-                      <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 mb-2">
-                        New Password
-                      </label>
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                          <Lock className="h-5 w-5 text-gray-400" />
-                        </div>
-                        <input
-                          type="password"
-                          id="newPassword"
-                          name="newPassword"
-                          value={passwordData.newPassword}
-                          onChange={handlePasswordChange}
-                          className="input-field pl-10"
-                          placeholder="Enter new password"
-                          required
-                        />
-                      </div>
-                      <p className="mt-1 text-sm text-gray-500">
-                        Must be at least 6 characters
-                      </p>
-                    </div>
-
-                    {/* Confirm Password */}
-                    <div>
-                      <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
-                        Confirm New Password
-                      </label>
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                          <Lock className="h-5 w-5 text-gray-400" />
-                        </div>
-                        <input
-                          type="password"
-                          id="confirmPassword"
-                          name="confirmPassword"
-                          value={passwordData.confirmPassword}
-                          onChange={handlePasswordChange}
-                          className="input-field pl-10"
-                          placeholder="Confirm new password"
-                          required
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4">
-                  <div className="flex">
-                    <div className="ml-3">
-                      <p className="text-sm text-yellow-700">
-                        After changing your password, you will remain logged in on this device but may be logged out of other devices.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex justify-end">
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="btn-primary flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <Lock className="w-4 h-4" />
-                    <span>{loading ? 'Updating...' : 'Update Password'}</span>
-                  </button>
-                </div>
-              </form>
-            )}
-          </div>
-        </div>
+          </Card>
+        </motion.div>
       </div>
     </div>
   );
 };
 
 export default Profile;
-

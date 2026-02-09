@@ -131,12 +131,12 @@ const EditEvent = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-background py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <button
           onClick={() => navigate('/admin/dashboard')}
-          className="flex items-center text-gray-600 hover:text-gray-900 mb-6"
+          className="flex items-center text-muted-foreground hover:text-foreground mb-6"
         >
           <ArrowLeft className="w-5 h-5 mr-2" />
           Back to Dashboard
@@ -148,15 +148,15 @@ const EditEvent = () => {
               <Calendar className="w-6 h-6 text-primary-600" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Edit Event</h1>
-              <p className="text-gray-600">Update event details</p>
+              <h1 className="text-3xl font-bold">Edit Event</h1>
+              <p className="text-muted-foreground">Update event details</p>
             </div>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Banner Image Upload */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 Event Banner Image
               </label>
               <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-primary-500 transition-colors">
@@ -181,8 +181,8 @@ const EditEvent = () => {
                 ) : (
                   <div className="space-y-1 text-center">
                     <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                    <div className="flex text-sm text-gray-600">
-                      <label className="relative cursor-pointer bg-white rounded-md font-medium text-primary-600 hover:text-primary-700">
+                    <div className="flex text-sm text-muted-foreground">
+                      <label className="relative cursor-pointer bg-card rounded-md font-medium text-primary hover:text-primary/90">
                         <span>Upload a file</span>
                         <input
                           type="file"
@@ -193,7 +193,7 @@ const EditEvent = () => {
                       </label>
                       <p className="pl-1">or drag and drop</p>
                     </div>
-                    <p className="text-xs text-gray-500">PNG, JPG, GIF up to 5MB</p>
+                    <p className="text-xs text-muted-foreground">PNG, JPG, GIF up to 5MB</p>
                   </div>
                 )}
               </div>
@@ -201,7 +201,7 @@ const EditEvent = () => {
 
             {/* Title */}
             <div>
-              <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="title" className="block text-sm font-medium text-foreground mb-2">
                 Event Title *
               </label>
               <input
@@ -218,7 +218,7 @@ const EditEvent = () => {
 
             {/* Description */}
             <div>
-              <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="description" className="block text-sm font-medium text-foreground mb-2">
                 Description *
               </label>
               <textarea
@@ -236,7 +236,7 @@ const EditEvent = () => {
             {/* Date, Time & Duration */}
             <div className="grid md:grid-cols-2 gap-6">
               <div>
-                <label htmlFor="dateTime" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="dateTime" className="block text-sm font-medium text-foreground mb-2">
                   Date & Time *
                 </label>
                 <input
@@ -251,7 +251,7 @@ const EditEvent = () => {
               </div>
 
               <div>
-                <label htmlFor="duration" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="duration" className="block text-sm font-medium text-foreground mb-2">
                   Duration (hours) *
                 </label>
                 <input
@@ -270,7 +270,7 @@ const EditEvent = () => {
 
             {/* Location */}
             <div>
-              <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="location" className="block text-sm font-medium text-foreground mb-2">
                 Location *
               </label>
               <input
@@ -288,7 +288,7 @@ const EditEvent = () => {
             {/* Category & Capacity */}
             <div className="grid md:grid-cols-2 gap-6">
               <div>
-                <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="category" className="block text-sm font-medium text-foreground mb-2">
                   Category *
                 </label>
                 <select
@@ -308,7 +308,7 @@ const EditEvent = () => {
               </div>
 
               <div>
-                <label htmlFor="capacity" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="capacity" className="block text-sm font-medium text-foreground mb-2">
                   Capacity *
                 </label>
                 <input
@@ -327,7 +327,7 @@ const EditEvent = () => {
             {/* Visibility & Paid Event */}
             <div className="grid md:grid-cols-2 gap-6">
               <div>
-                <label htmlFor="visibility" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="visibility" className="block text-sm font-medium text-foreground mb-2">
                   Visibility
                 </label>
                 <select
@@ -351,7 +351,7 @@ const EditEvent = () => {
                     onChange={handleChange}
                     className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
                   />
-                  <span className="text-sm font-medium text-gray-700">Paid Event</span>
+                  <span className="text-sm font-medium text-foreground">Paid Event</span>
                 </label>
 
                 <label className="flex items-center space-x-2">
@@ -362,7 +362,7 @@ const EditEvent = () => {
                     onChange={handleChange}
                     className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
                   />
-                  <span className="text-sm font-medium text-gray-700">Allow Waitlist</span>
+                  <span className="text-sm font-medium text-foreground">Allow Waitlist</span>
                 </label>
               </div>
             </div>
@@ -370,7 +370,7 @@ const EditEvent = () => {
             {/* Price (if paid) */}
             {formData.isPaid && (
               <div>
-                <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="price" className="block text-sm font-medium text-foreground mb-2">
                   Price ($) *
                 </label>
                 <input
@@ -389,7 +389,7 @@ const EditEvent = () => {
 
             {/* Requirements */}
             <div>
-              <label htmlFor="requirements" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="requirements" className="block text-sm font-medium text-foreground mb-2">
                 Requirements (Optional)
               </label>
               <textarea
@@ -405,7 +405,7 @@ const EditEvent = () => {
 
             {/* Tags */}
             <div>
-              <label htmlFor="tags" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="tags" className="block text-sm font-medium text-foreground mb-2">
                 Tags (Optional)
               </label>
               <input
@@ -417,7 +417,7 @@ const EditEvent = () => {
                 className="input-field"
                 placeholder="e.g., technology, networking, innovation (comma-separated)"
               />
-              <p className="mt-1 text-sm text-gray-500">Separate tags with commas</p>
+              <p className="mt-1 text-sm text-muted-foreground">Separate tags with commas</p>
             </div>
 
             {/* Submit Button */}

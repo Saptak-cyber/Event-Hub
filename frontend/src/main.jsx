@@ -3,37 +3,41 @@ import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 import './index.css'
 import { AuthProvider } from './context/AuthContext.jsx'
+import { ThemeProvider } from './context/ThemeContext.jsx'
 import { Toaster } from 'react-hot-toast'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <AuthProvider>
-      <App />
-      <Toaster 
-        position="top-right"
-        toastOptions={{
-          duration: 4000,
-          style: {
-            background: '#363636',
-            color: '#fff',
-          },
-          success: {
-            duration: 3000,
-            iconTheme: {
-              primary: '#10b981',
-              secondary: '#fff',
-            },
-          },
-          error: {
+    <ThemeProvider>
+      <AuthProvider>
+        <App />
+        <Toaster 
+          position="top-right"
+          toastOptions={{
             duration: 4000,
-            iconTheme: {
-              primary: '#ef4444',
-              secondary: '#fff',
+            className: 'dark:bg-card dark:text-card-foreground',
+            style: {
+              background: 'hsl(var(--card))',
+              color: 'hsl(var(--card-foreground))',
+              border: '1px solid hsl(var(--border))',
             },
-          },
-        }}
-      />
-    </AuthProvider>
+            success: {
+              iconTheme: {
+                primary: 'hsl(var(--primary))',
+                secondary: 'white',
+              },
+            },
+            error: {
+              iconTheme: {
+                primary: 'hsl(var(--destructive))',
+                secondary: 'white',
+              },
+            },
+          }}
+        />
+      </AuthProvider>
+    </ThemeProvider>
   </React.StrictMode>,
 )
+
 

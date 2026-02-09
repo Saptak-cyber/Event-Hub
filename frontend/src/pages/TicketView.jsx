@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { Download, Calendar, MapPin, User, Mail, Ticket } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 const TicketView = () => {
   const { registrationId } = useParams();
@@ -48,17 +49,26 @@ const TicketView = () => {
   };
 
   const addToCalendar = async () => {
-    try {
+    try {      const { data: userData } = await api.get('/auth/me');
+      
+      if (!userData.data.googleCalendarTokens) {
+        const { data: authData } = await api.get('/auth/google/url');
+        window.open(authData.authUrl, '_blank');
+        toast.info('Please complete Google Calendar authorization in the new window');
+        return;
+      }
+  
       await api.post(`/registrations/${registrationId}/add-to-calendar`);
-      alert('Event added to your Google Calendar!');
+      toast.success('Event added to Google Calendar!');
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to add to calendar');
+      const message = err.response?.data?.message || 'Failed to add to calendar';
+      toast.error(message);
     }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <LoadingSpinner />
       </div>
     );
@@ -66,18 +76,18 @@ const TicketView = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-        <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center">
-          <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 mb-4">
-            <svg className="h-10 w-10 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div className="min-h-screen bg-background flex items-center justify-center px-4">
+        <div className="max-w-md w-full bg-card rounded-2xl shadow-xl p-8 text-center">
+          <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-destructive/20 mb-4">
+            <svg className="h-10 w-10 text-destructive" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Error</h2>
-          <p className="text-gray-600 mb-6">{error}</p>
+          <h2 className="text-2xl font-bold mb-2">Error</h2>
+          <p className="text-muted-foreground mb-6">{error}</p>
           <button
             onClick={() => navigate('/dashboard')}
-            className="w-full bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors"
+            className="w-full bg-primary text-primary-foreground py-2 px-4 rounded-lg hover:bg-primary/90 transition-colors"
           >
             Go to Dashboard
           </button>
@@ -87,19 +97,19 @@ const TicketView = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-indigo-100 py-12 px-4">
+    <div className="min-h-screen bg-background py-12 px-4">
       <div className="max-w-2xl mx-auto">
         {/* Actions */}
         <div className="mb-6 flex gap-4 print:hidden">
           <button
             onClick={() => navigate('/dashboard')}
-            className="flex-1 bg-white text-gray-700 py-3 px-4 rounded-lg hover:bg-gray-50 transition-colors shadow"
+            className="flex-1 bg-card text-foreground py-3 px-4 rounded-lg hover:bg-accent transition-colors shadow"
           >
             Back to Dashboard
           </button>
           <button
             onClick={downloadTicket}
-            className="flex items-center gap-2 bg-purple-600 text-white py-3 px-6 rounded-lg hover:bg-purple-700 transition-colors shadow"
+            className="flex items-center gap-2 bg-primary text-primary-foreground py-3 px-6 rounded-lg hover:bg-primary/90 transition-colors shadow"
           >
             <Download className="w-5 h-5" />
             Download
@@ -114,7 +124,7 @@ const TicketView = () => {
         </div>
 
         {/* Ticket */}
-        <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
+        <div className="bg-card rounded-2xl shadow-2xl overflow-hidden border border-border">
           {/* Header */}
           <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-8">
             <div className="flex items-center gap-2 mb-4">
@@ -140,29 +150,29 @@ const TicketView = () => {
             <div className="grid md:grid-cols-2 gap-8">
               {/* Event Details */}
               <div className="space-y-4">
-                <h3 className="font-semibold text-gray-900 text-lg mb-4">Event Details</h3>
+                <h3 className="font-semibold text-lg mb-4">Event Details</h3>
                 
                 <div className="flex items-start gap-3">
                   <MapPin className="w-5 h-5 text-purple-600 mt-0.5" />
                   <div>
-                    <p className="text-sm text-gray-500">Location</p>
-                    <p className="text-gray-900">{ticket.event.location}</p>
+                    <p className="text-sm text-muted-foreground">Location</p>
+                    <p className="text-foreground">{ticket.event.location}</p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-3">
                   <User className="w-5 h-5 text-purple-600 mt-0.5" />
                   <div>
-                    <p className="text-sm text-gray-500">Attendee</p>
-                    <p className="text-gray-900">{ticket.user.name}</p>
+                    <p className="text-sm text-muted-foreground">Attendee</p>
+                    <p className="text-foreground">{ticket.user.name}</p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-3">
                   <Mail className="w-5 h-5 text-purple-600 mt-0.5" />
                   <div>
-                    <p className="text-sm text-gray-500">Email</p>
-                    <p className="text-gray-900">{ticket.user.email}</p>
+                    <p className="text-sm text-muted-foreground">Email</p>
+                    <p className="text-foreground">{ticket.user.email}</p>
                   </div>
                 </div>
 
@@ -176,14 +186,14 @@ const TicketView = () => {
 
               {/* QR Code */}
               <div className="flex flex-col items-center justify-center">
-                <div className="bg-white p-4 rounded-xl border-4 border-purple-200">
+                <div className="bg-background p-4 rounded-xl border-4 border-primary/20">
                   <img 
                     src={ticket.qrCode} 
                     alt="Ticket QR Code"
                     className="w-48 h-48"
                   />
                 </div>
-                <p className="text-sm text-gray-500 mt-4 text-center">
+                <p className="text-sm text-muted-foreground mt-4 text-center">
                   Show this QR code at the venue for check-in
                 </p>
               </div>
@@ -202,8 +212,8 @@ const TicketView = () => {
           </div>
 
           {/* Footer */}
-          <div className="bg-gray-50 px-8 py-4 border-t">
-            <p className="text-xs text-gray-500 text-center">
+          <div className="bg-muted px-8 py-4 border-t border-border">
+            <p className="text-xs text-muted-foreground text-center">
               Registered on {new Date(ticket.registeredAt).toLocaleDateString()} | Event Management System
             </p>
           </div>

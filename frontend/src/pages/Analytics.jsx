@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import api from '../utils/api';
-import LoadingSpinner from '../components/LoadingSpinner';
 import {
   LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
@@ -10,14 +9,19 @@ import {
   Users, Calendar, DollarSign, TrendingUp, Award,
   Download, RefreshCw, CheckCircle, Search, Trash2, Shield
 } from 'lucide-react';
+import { Button } from '../components/ui/Button';
+import { Card } from '../components/ui/Card';
+import { Input } from '../components/ui/Input';
+import { Badge } from '../components/ui/Badge';
+import { Skeleton } from '../components/ui/Skeleton';
+import { cn } from '../lib/utils';
+import toast from 'react-hot-toast';
 
 const Analytics = () => {
-  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState('30d');
   const [analytics, setAnalytics] = useState(null);
   const [users, setUsers] = useState([]);
-  const [revenue, setRevenue] = useState(null);
   const [usersLoading, setUsersLoading] = useState(false);
   const [userFilters, setUserFilters] = useState({
     search: '',
@@ -48,10 +52,10 @@ const Analytics = () => {
       ]);
 
       setAnalytics(analyticsRes.data.data);
-      setRevenue(revenueRes.data.data);
-      setLoading(false);
     } catch (error) {
+      toast.error('Failed to fetch analytics');
       console.error('Failed to fetch analytics:', error);
+    } finally {
       setLoading(false);
     }
   };
@@ -101,8 +105,9 @@ const Analytics = () => {
       setUsers(prev => prev.map(user => (
         user._id === userId ? { ...user, role } : user
       )));
+      toast.success('User role updated successfully');
     } catch (error) {
-      alert(error.response?.data?.message || 'Failed to update user role');
+      toast.error(error.response?.data?.message || 'Failed to update user role');
     }
   };
 
@@ -115,8 +120,9 @@ const Analytics = () => {
       await api.delete(`/admin/users/${userId}`);
       setUsers(prev => prev.filter(user => user._id !== userId));
       setUserPagination(prev => ({ ...prev, total: Math.max(prev.total - 1, 0) }));
+      toast.success('User deleted successfully');
     } catch (error) {
-      alert(error.response?.data?.message || 'Failed to delete user');
+      toast.error(error.response?.data?.message || 'Failed to delete user');
     }
   };
 
@@ -130,386 +136,450 @@ const Analytics = () => {
       link.href = url;
       link.download = `${type}_export_${Date.now()}.json`;
       link.click();
+      URL.revokeObjectURL(url);
+      toast.success(`${type} exported successfully`);
     } catch (error) {
-      alert('Export failed: ' + error.response?.data?.message);
+      toast.error('Export failed: ' + error.response?.data?.message);
     }
   };
 
+  const COLORS = ['#8b5cf6', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', '#ec4899'];
+
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <LoadingSpinner />
+      <div className="min-h-screen bg-background py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <Skeleton className="h-12 w-64 mb-8" />
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            {[1, 2, 3, 4].map(i => (
+              <Skeleton key={i} className="h-32" />
+            ))}
+          </div>
+          <Skeleton className="h-96 mb-8" />
+        </div>
       </div>
     );
   }
 
-  const COLORS = ['#8b5cf6', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', '#ec4899'];
-
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow">
+    <div className="min-h-screen bg-background">
+      <div className="bg-card shadow border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between">
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex items-center justify-between"
+          >
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Analytics Dashboard</h1>
-              <p className="text-gray-500 mt-1">Platform-wide insights and statistics</p>
+              <h1 className="text-3xl font-bold">Analytics Dashboard</h1>
+              <p className="text-muted-foreground mt-1">Platform-wide insights and statistics</p>
             </div>
             <div className="flex gap-3">
               <select
                 value={timeRange}
                 onChange={(e) => setTimeRange(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                className="input-field"
               >
                 <option value="7d">Last 7 days</option>
                 <option value="30d">Last 30 days</option>
                 <option value="90d">Last 90 days</option>
                 <option value="1y">Last year</option>
               </select>
-              <button
+              <Button
                 onClick={fetchAnalytics}
-                className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                variant="secondary"
+                className="flex items-center gap-2"
               >
                 <RefreshCw className="w-4 h-4" />
                 Refresh
-              </button>
+              </Button>
             </div>
-          </div>
+          </motion.div>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500">Total Users</p>
-                <p className="text-3xl font-bold text-gray-900">{analytics.overview.totalUsers}</p>
-                <p className="text-sm text-green-600 mt-1">+{analytics.growth.newUsers} this period</p>
-              </div>
-              <div className="bg-purple-100 p-3 rounded-lg">
-                <Users className="w-8 h-8 text-purple-600" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500">Total Events</p>
-                <p className="text-3xl font-bold text-gray-900">{analytics.overview.totalEvents}</p>
-                <p className="text-sm text-blue-600 mt-1">+{analytics.growth.newEvents} this period</p>
-              </div>
-              <div className="bg-blue-100 p-3 rounded-lg">
-                <Calendar className="w-8 h-8 text-blue-600" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500">Total Revenue</p>
-                <p className="text-3xl font-bold text-gray-900">${analytics.overview.totalRevenue}</p>
-                <p className="text-sm text-gray-500 mt-1">Avg: ${analytics.overview.averageRevenuePerEvent}/event</p>
-              </div>
-              <div className="bg-green-100 p-3 rounded-lg">
-                <DollarSign className="w-8 h-8 text-green-600" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500">Registrations</p>
-                <p className="text-3xl font-bold text-gray-900">{analytics.overview.totalRegistrations}</p>
-                <p className="text-sm text-orange-600 mt-1">+{analytics.growth.newRegistrations} this period</p>
-              </div>
-              <div className="bg-orange-100 p-3 rounded-lg">
-                <TrendingUp className="w-8 h-8 text-orange-600" />
-              </div>
-            </div>
-          </div>
+          {[
+            {
+              label: 'Total Users',
+              value: analytics.overview.totalUsers,
+              change: `+${analytics.growth.newUsers}`,
+              icon: Users,
+              color: 'text-purple-500',
+              bg: 'bg-purple-500/10'
+            },
+            {
+              label: 'Total Events',
+              value: analytics.overview.totalEvents,
+              change: `+${analytics.growth.newEvents}`,
+              icon: Calendar,
+              color: 'text-blue-500',
+              bg: 'bg-blue-500/10'
+            },
+            {
+              label: 'Total Revenue',
+              value: `$${analytics.overview.totalRevenue}`,
+              change: `Avg: $${analytics.overview.averageRevenuePerEvent}/event`,
+              icon: DollarSign,
+              color: 'text-green-500',
+              bg: 'bg-green-500/10'
+            },
+            {
+              label: 'Registrations',
+              value: analytics.overview.totalRegistrations,
+              change: `+${analytics.growth.newRegistrations}`,
+              icon: TrendingUp,
+              color: 'text-orange-500',
+              bg: 'bg-orange-500/10'
+            }
+          ].map((stat, index) => (
+            <motion.div
+              key={stat.label}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
+            >
+              <Card className="p-6">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm text-muted-foreground">{stat.label}</p>
+                  <div className={cn("p-3 rounded-lg", stat.bg)}>
+                    <stat.icon className={cn("w-5 h-5", stat.color)} />
+                  </div>
+                </div>
+                <p className="text-3xl font-bold mb-1">{stat.value}</p>
+                <p className="text-sm text-muted-foreground">{stat.change}</p>
+              </Card>
+            </motion.div>
+          ))}
         </div>
 
         {/* Charts Row */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          {/* Registration Trends */}
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Registration Trends</h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={analytics.registrationTrends}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="_id" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Line type="monotone" dataKey="count" stroke="#8b5cf6" name="Registrations" />
-                <Line type="monotone" dataKey="revenue" stroke="#10b981" name="Revenue ($)" />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold mb-4">Registration Trends</h3>
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={analytics.registrationTrends}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                  <XAxis dataKey="_id" className="text-sm" />
+                  <YAxis className="text-sm" />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px'
+                    }}
+                  />
+                  <Legend />
+                  <Line type="monotone" dataKey="count" stroke="#8b5cf6" name="Registrations" strokeWidth={2} />
+                  <Line type="monotone" dataKey="revenue" stroke="#10b981" name="Revenue ($)" strokeWidth={2} />
+                </LineChart>
+              </ResponsiveContainer>
+            </Card>
+          </motion.div>
 
-          {/* Category Distribution */}
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Events by Category</h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={analytics.categoryDistribution}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ _id, count }) => `${_id}: ${count}`}
-                  outerRadius={100}
-                  fill="#8884d8"
-                  dataKey="count"
-                >
-                  {analytics.categoryDistribution.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold mb-4">Events by Category</h3>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={analytics.categoryDistribution}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ _id, count }) => `${_id}: ${count}`}
+                    outerRadius={100}
+                    fill="#8884d8"
+                    dataKey="count"
+                  >
+                    {analytics.categoryDistribution.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px'
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </Card>
+          </motion.div>
         </div>
 
         {/* Top Events */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200 mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">Top Events by Registrations</h3>
-            <Award className="w-6 h-6 text-yellow-500" />
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rank</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Event</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Registrations</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {analytics.topEvents.slice(0, 10).map((event, index) => (
-                  <tr key={event._id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${
-                        index === 0 ? 'bg-yellow-100 text-yellow-800' :
-                        index === 1 ? 'bg-gray-100 text-gray-800' :
-                        index === 2 ? 'bg-orange-100 text-orange-800' :
-                        'bg-gray-50 text-gray-600'
-                      } font-semibold text-sm`}>
-                        {index + 1}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-sm font-medium text-gray-900">{event.title}</td>
-                    <td className="px-4 py-3 text-sm text-gray-500 capitalize">{event.category}</td>
-                    <td className="px-4 py-3 text-sm text-gray-500">
-                      {new Date(event.dateTime).toLocaleDateString()}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800">
-                        {event.registrationCount}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Quick Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-            <h4 className="text-sm font-medium text-gray-500 mb-2">Active Events</h4>
-            <p className="text-2xl font-bold text-gray-900">{analytics.overview.activeEvents}</p>
-          </div>
-          
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-            <h4 className="text-sm font-medium text-gray-500 mb-2">Paid Registrations</h4>
-            <p className="text-2xl font-bold text-gray-900">{analytics.overview.paidRegistrations}</p>
-          </div>
-          
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-            <h4 className="text-sm font-medium text-gray-500 mb-2">Check-in Rate</h4>
-            <p className="text-2xl font-bold text-gray-900">{analytics.checkInRate}%</p>
-          </div>
-        </div>
-
-        {/* User Management */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200 mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">User Management</h3>
-              <p className="text-sm text-gray-500">Manage roles and accounts</p>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+        >
+          <Card className="p-6 mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Top Events by Registrations</h3>
+              <Award className="w-6 h-6 text-yellow-500" />
             </div>
-            <div className="text-sm text-gray-500">
-              Total Users: <span className="font-medium text-gray-900">{userPagination.total}</span>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            <div className="relative">
-              <Search className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
-              <input
-                type="text"
-                value={userFilters.search}
-                onChange={handleUserSearch}
-                placeholder="Search by name or email"
-                className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg"
-              />
-            </div>
-            <select
-              value={userFilters.role}
-              onChange={handleUserRoleFilter}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-            >
-              <option value="all">All Roles</option>
-              <option value="user">User</option>
-              <option value="admin">Admin</option>
-            </select>
-            <select
-              value={userFilters.verified}
-              onChange={handleUserVerifiedFilter}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-            >
-              <option value="all">All Verification</option>
-              <option value="true">Verified</option>
-              <option value="false">Unverified</option>
-            </select>
-          </div>
-
-          {usersLoading ? (
-            <div className="py-8 text-center">
-              <LoadingSpinner />
-            </div>
-          ) : users.length === 0 ? (
-            <div className="py-8 text-center text-gray-500">No users found</div>
-          ) : (
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gray-50">
+                <thead className="bg-muted/50">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Verified</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Registrations</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Rank</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Event</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Category</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Date</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Registrations</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {users.map(user => (
-                    <tr key={user._id} className="hover:bg-gray-50">
+                <tbody className="divide-y divide-border">
+                  {analytics.topEvents.slice(0, 10).map((event, index) => (
+                    <tr key={event._id} className="hover:bg-muted/30 transition-colors">
                       <td className="px-4 py-3">
-                        <div className="flex items-center gap-3">
-                          <img
-                            src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}`}
-                            alt={user.name}
-                            className="w-8 h-8 rounded-full"
-                          />
-                          <div>
-                            <div className="text-sm font-medium text-gray-900">{user.name}</div>
-                            <div className="text-xs text-gray-500">{user.email}</div>
-                          </div>
-                        </div>
+                        <span className={cn(
+                          "inline-flex items-center justify-center w-8 h-8 rounded-full font-semibold text-sm",
+                          index === 0 ? 'bg-yellow-500/20 text-yellow-500' :
+                          index === 1 ? 'bg-muted text-muted-foreground' :
+                          index === 2 ? 'bg-orange-500/20 text-orange-500' :
+                          'bg-muted/50 text-muted-foreground'
+                        )}>
+                          {index + 1}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-sm font-medium">{event.title}</td>
+                      <td className="px-4 py-3 text-sm text-muted-foreground capitalize">{event.category}</td>
+                      <td className="px-4 py-3 text-sm text-muted-foreground">
+                        {new Date(event.dateTime).toLocaleDateString()}
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <Shield className="w-4 h-4 text-gray-400" />
-                          <select
-                            value={user.role}
-                            onChange={(e) => updateUserRole(user._id, e.target.value)}
-                            className="px-2 py-1 border border-gray-300 rounded-md text-sm"
-                          >
-                            <option value="user">User</option>
-                            <option value="admin">Admin</option>
-                          </select>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        {user.isEmailVerified ? (
-                          <span className="inline-flex items-center gap-1 text-green-700 text-sm">
-                            <CheckCircle className="w-4 h-4" /> Verified
-                          </span>
-                        ) : (
-                          <span className="text-sm text-gray-500">No</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-700">
-                        {user.stats?.registrationCount ?? 0}
-                      </td>
-                      <td className="px-4 py-3">
-                        <button
-                          onClick={() => deleteUser(user._id)}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-red-600 border border-red-200 rounded-lg hover:bg-red-50"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                          Delete
-                        </button>
+                        <Badge className="bg-purple-500/10 text-purple-500 border-purple-500/20">
+                          {event.registrationCount}
+                        </Badge>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-          )}
+          </Card>
+        </motion.div>
 
-          {userPagination.pages > 1 && (
-            <div className="flex items-center justify-between mt-4">
-              <button
-                onClick={() => setUserPagination(prev => ({ ...prev, page: Math.max(prev.page - 1, 1) }))}
-                disabled={userPagination.page === 1}
-                className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm disabled:opacity-50"
-              >
-                Previous
-              </button>
-              <span className="text-sm text-gray-500">
-                Page {userPagination.page} of {userPagination.pages}
-              </span>
-              <button
-                onClick={() => setUserPagination(prev => ({ ...prev, page: Math.min(prev.page + 1, prev.pages) }))}
-                disabled={userPagination.page === userPagination.pages}
-                className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm disabled:opacity-50"
-              >
-                Next
-              </button>
-            </div>
-          )}
+        {/* Quick Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          {[
+            { label: 'Active Events', value: analytics.overview.activeEvents },
+            { label: 'Paid Registrations', value: analytics.overview.paidRegistrations },
+            { label: 'Check-in Rate', value: `${analytics.checkInRate}%` }
+          ].map((stat, index) => (
+            <motion.div
+              key={stat.label}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 + index * 0.1 }}
+            >
+              <Card className="p-6">
+                <h4 className="text-sm font-medium text-muted-foreground mb-2">{stat.label}</h4>
+                <p className="text-2xl font-bold">{stat.value}</p>
+              </Card>
+            </motion.div>
+          ))}
         </div>
+
+        {/* User Management */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6 }}
+        >
+          <Card className="p-6 mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-lg font-semibold">User Management</h3>
+                <p className="text-sm text-muted-foreground">Manage roles and accounts</p>
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Total Users: <span className="font-medium text-foreground">{userPagination.total}</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <div className="relative">
+                <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+                <Input
+                  type="text"
+                  value={userFilters.search}
+                  onChange={handleUserSearch}
+                  placeholder="Search by name or email"
+                  className="pl-9"
+                />
+              </div>
+              <select
+                value={userFilters.role}
+                onChange={handleUserRoleFilter}
+                className="input-field"
+              >
+                <option value="all">All Roles</option>
+                <option value="user">User</option>
+                <option value="admin">Admin</option>
+              </select>
+              <select
+                value={userFilters.verified}
+                onChange={handleUserVerifiedFilter}
+                className="input-field"
+              >
+                <option value="all">All Verification</option>
+                <option value="true">Verified</option>
+                <option value="false">Unverified</option>
+              </select>
+            </div>
+
+            {usersLoading ? (
+              <div className="py-8 text-center">
+                <Skeleton className="h-64" />
+              </div>
+            ) : users.length === 0 ? (
+              <div className="py-8 text-center text-muted-foreground">No users found</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-muted/50">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">User</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Role</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Verified</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Registrations</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {users.map(user => (
+                      <tr key={user._id} className="hover:bg-muted/30 transition-colors">
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-3">
+                            <img
+                              src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}`}
+                              alt={user.name}
+                              className="w-8 h-8 rounded-full"
+                            />
+                            <div>
+                              <div className="text-sm font-medium">{user.name}</div>
+                              <div className="text-xs text-muted-foreground">{user.email}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <Shield className="w-4 h-4 text-muted-foreground" />
+                            <select
+                              value={user.role}
+                              onChange={(e) => updateUserRole(user._id, e.target.value)}
+                              className="input-field text-sm py-1"
+                            >
+                              <option value="user">User</option>
+                              <option value="admin">Admin</option>
+                            </select>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          {user.isEmailVerified ? (
+                            <Badge className="bg-green-500/10 text-green-500 border-green-500/20">
+                              <CheckCircle className="w-3 h-3 mr-1" />
+                              Verified
+                            </Badge>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">No</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-sm">
+                          {user.stats?.registrationCount ?? 0}
+                        </td>
+                        <td className="px-4 py-3">
+                          <Button
+                            onClick={() => deleteUser(user._id)}
+                            variant="destructive"
+                            size="sm"
+                            className="flex items-center gap-1"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            Delete
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {userPagination.pages > 1 && (
+              <div className="flex items-center justify-between mt-4">
+                <Button
+                  onClick={() => setUserPagination(prev => ({ ...prev, page: Math.max(prev.page - 1, 1) }))}
+                  disabled={userPagination.page === 1}
+                  variant="secondary"
+                  size="sm"
+                >
+                  Previous
+                </Button>
+                <span className="text-sm text-muted-foreground">
+                  Page {userPagination.page} of {userPagination.pages}
+                </span>
+                <Button
+                  onClick={() => setUserPagination(prev => ({ ...prev, page: Math.min(prev.page + 1, prev.pages) }))}
+                  disabled={userPagination.page === userPagination.pages}
+                  variant="secondary"
+                  size="sm"
+                >
+                  Next
+                </Button>
+              </div>
+            )}
+          </Card>
+        </motion.div>
 
         {/* Export Section */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Export Data</h3>
-          <div className="flex flex-wrap gap-4">
-            <button
-              onClick={() => exportData('users')}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              <Download className="w-4 h-4" />
-              Export Users
-            </button>
-            <button
-              onClick={() => exportData('events')}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-            >
-              <Download className="w-4 h-4" />
-              Export Events
-            </button>
-            <button
-              onClick={() => exportData('registrations')}
-              className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
-            >
-              <Download className="w-4 h-4" />
-              Export Registrations
-            </button>
-          </div>
-        </div>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.7 }}
+        >
+          <Card className="p-6">
+            <h3 className="text-lg font-semibold mb-4">Export Data</h3>
+            <div className="flex flex-wrap gap-4">
+              <Button
+                onClick={() => exportData('users')}
+                className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600"
+              >
+                <Download className="w-4 h-4" />
+                Export Users
+              </Button>
+              <Button
+                onClick={() => exportData('events')}
+                className="flex items-center gap-2 bg-green-500 hover:bg-green-600"
+              >
+                <Download className="w-4 h-4" />
+                Export Events
+              </Button>
+              <Button
+                onClick={() => exportData('registrations')}
+                className="flex items-center gap-2 bg-purple-500 hover:bg-purple-600"
+              >
+                <Download className="w-4 h-4" />
+                Export Registrations
+              </Button>
+            </div>
+          </Card>
+        </motion.div>
       </div>
     </div>
   );
