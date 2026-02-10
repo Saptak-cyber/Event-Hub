@@ -28,8 +28,11 @@ const app = express();
 // Connect to database
 connectDB();
 
+// Trust proxy (MUST be before rate limiting)
+app.set('trust proxy', 1);
+
 // Security middleware
-app.use(helmet()); // Set security headers
+app.use(helmet());
 
 // Rate limiting
 const limiter = rateLimit({
