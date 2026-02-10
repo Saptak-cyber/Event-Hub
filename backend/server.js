@@ -31,8 +31,21 @@ connectDB();
 // Trust proxy (MUST be before rate limiting)
 app.set('trust proxy', 1);
 
-// Security middleware
-app.use(helmet());
+// Security middleware with Stripe exceptions
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "https://js.stripe.com"],
+        frameSrc: ["'self'", "https://js.stripe.com"],
+        connectSrc: ["'self'", "https://api.stripe.com", "https://r.stripe.com"],
+        imgSrc: ["'self'", "data:", "https:"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+      },
+    },
+  })
+);
 
 // Rate limiting
 const limiter = rateLimit({

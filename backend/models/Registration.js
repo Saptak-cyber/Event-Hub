@@ -80,7 +80,6 @@ registrationSchema.index({ event: 1, user: 1 }, { unique: true });
 registrationSchema.index({ user: 1, status: 1 });
 registrationSchema.index({ event: 1, status: 1 });
 registrationSchema.index({ registeredAt: 1 });
-registrationSchema.index({ ticketNumber: 1 });
 
 // Generate ticket number before saving
 registrationSchema.pre('save', function(next) {
