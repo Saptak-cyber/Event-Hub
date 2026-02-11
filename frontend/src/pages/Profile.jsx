@@ -60,8 +60,28 @@ const Profile = () => {
 
     try {
       await updateUser(profileData);
+      toast.success('Profile updated successfully');
     } catch (error) {
       console.error('Error updating profile:', error);
+      
+      if (error.response) {
+        const status = error.response.status;
+        const message = error.response.data?.message;
+        
+        if (status === 400) {
+          toast.error(message || 'Invalid profile details');
+        } else if (status === 401) {
+          toast.error('Please log in again to update your profile');
+        } else if (status === 500) {
+          toast.error('Server error. Please try again later.');
+        } else {
+          toast.error(message || 'Failed to update profile');
+        }
+      } else if (error.request) {
+        toast.error('Unable to connect to server. Please check your internet connection.');
+      } else {
+        toast.error('An unexpected error occurred. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -95,8 +115,26 @@ const Profile = () => {
         confirmPassword: ''
       });
     } catch (error) {
-      const message = error.response?.data?.message || 'Failed to update password';
-      toast.error(message);
+      console.error('Password update error:', error);
+      
+      if (error.response) {
+        const status = error.response.status;
+        const message = error.response.data?.message;
+        
+        if (status === 400) {
+          toast.error(message || 'Invalid password details');
+        } else if (status === 401) {
+          toast.error(message || 'Current password is incorrect');
+        } else if (status === 500) {
+          toast.error('Server error. Please try again later.');
+        } else {
+          toast.error(message || 'Failed to update password');
+        }
+      } else if (error.request) {
+        toast.error('Unable to connect to server. Please check your internet connection.');
+      } else {
+        toast.error('An unexpected error occurred. Please try again.');
+      }
     } finally {
       setLoading(false);
     }

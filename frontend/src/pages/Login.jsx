@@ -25,7 +25,30 @@ const Login = () => {
       toast.success('Login successful!');
       navigate('/');
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Login failed');
+      console.error('Login error:', error);
+      
+      // Handle different error scenarios
+      if (error.response) {
+        // Server responded with error status
+        const status = error.response.status;
+        const message = error.response.data?.message;
+        
+        if (status === 401) {
+          toast.error(message || 'Invalid email or password');
+        } else if (status === 404) {
+          toast.error('Login service not found. Please contact support.');
+        } else if (status === 500) {
+          toast.error('Server error. Please try again later.');
+        } else {
+          toast.error(message || 'Login failed. Please try again.');
+        }
+      } else if (error.request) {
+        // Request made but no response received
+        toast.error('Unable to connect to server. Please check your internet connection.');
+      } else {
+        // Something else happened
+        toast.error('An unexpected error occurred. Please try again.');
+      }
     } finally {
       setLoading(false);
     }

@@ -36,31 +36,17 @@ export const AuthProvider = ({ children }) => {
   };
 
   const login = async (credentials) => {
-    try {
-      const { data } = await api.post('/auth/login', credentials);
-      localStorage.setItem('token', data.token);
-      setUser(data.user);
-      toast.success('Login successful!');
-      return data;
-    } catch (error) {
-      const message = error.response?.data?.message || 'Login failed';
-      toast.error(message);
-      throw error;
-    }
+    const { data } = await api.post('/auth/login', credentials);
+    localStorage.setItem('token', data.token);
+    setUser(data.user);
+    return data;
   };
 
   const register = async (userData) => {
-    try {
-      const { data } = await api.post('/auth/register', userData);
-      localStorage.setItem('token', data.token);
-      setUser(data.user);
-      toast.success('Registration successful!');
-      return data;
-    } catch (error) {
-      const message = error.response?.data?.message || 'Registration failed';
-      toast.error(message);
-      throw error;
-    }
+    const { data } = await api.post('/auth/register', userData);
+    localStorage.setItem('token', data.token);
+    setUser(data.user);
+    return data;
   };
 
   const logout = async () => {
@@ -76,16 +62,9 @@ export const AuthProvider = ({ children }) => {
   };
 
   const updateUser = async (userData) => {
-    try {
-      const { data } = await api.put('/auth/updatedetails', userData);
-      setUser(data.data);
-      toast.success('Profile updated successfully');
-      return data;
-    } catch (error) {
-      const message = error.response?.data?.message || 'Update failed';
-      toast.error(message);
-      throw error;
-    }
+    const { data } = await api.put('/auth/updatedetails', userData);
+    setUser(data.data);
+    return data;
   };
 
   const value = {

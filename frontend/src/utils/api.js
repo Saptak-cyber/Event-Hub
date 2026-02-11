@@ -28,10 +28,16 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    // Only redirect to login if token is truly invalid (not for login/register failures)
+    if (error.response?.status === 401 && 
+        !error.config?.url?.includes('/auth/login') && 
+        !error.config?.url?.includes('/auth/register')) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      window.location.href = '/login';
+      // Only redirect if not already on login page
+      if (!window.location.pathname.includes('/login')) {
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }

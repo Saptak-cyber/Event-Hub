@@ -47,7 +47,27 @@ const Register = () => {
       toast.success('Registration successful! You can now log in.');
       navigate('/login');
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Registration failed');
+      console.error('Registration error:', error);
+      
+      // Handle different error scenarios
+      if (error.response) {
+        const status = error.response.status;
+        const message = error.response.data?.message;
+        
+        if (status === 400) {
+          toast.error(message || 'Invalid registration details');
+        } else if (status === 404) {
+          toast.error('Registration service not found. Please contact support.');
+        } else if (status === 500) {
+          toast.error('Server error. Please try again later.');
+        } else {
+          toast.error(message || 'Registration failed. Please try again.');
+        }
+      } else if (error.request) {
+        toast.error('Unable to connect to server. Please check your internet connection.');
+      } else {
+        toast.error('An unexpected error occurred. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
