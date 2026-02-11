@@ -25,8 +25,7 @@ const Analytics = () => {
   const [usersLoading, setUsersLoading] = useState(false);
   const [userFilters, setUserFilters] = useState({
     search: '',
-    role: 'all',
-    verified: 'all'
+    role: 'all'
   });
   const [userPagination, setUserPagination] = useState({
     page: 1,
@@ -66,7 +65,6 @@ const Analytics = () => {
       const params = new URLSearchParams();
       if (userFilters.search) params.append('search', userFilters.search);
       if (userFilters.role !== 'all') params.append('role', userFilters.role);
-      if (userFilters.verified !== 'all') params.append('verified', userFilters.verified);
       params.append('page', userPagination.page);
       params.append('limit', userPagination.limit);
 
@@ -91,11 +89,6 @@ const Analytics = () => {
 
   const handleUserRoleFilter = (e) => {
     setUserFilters(prev => ({ ...prev, role: e.target.value }));
-    setUserPagination(prev => ({ ...prev, page: 1 }));
-  };
-
-  const handleUserVerifiedFilter = (e) => {
-    setUserFilters(prev => ({ ...prev, verified: e.target.value }));
     setUserPagination(prev => ({ ...prev, page: 1 }));
   };
 
@@ -432,15 +425,6 @@ const Analytics = () => {
                 <option value="user">User</option>
                 <option value="admin">Admin</option>
               </select>
-              <select
-                value={userFilters.verified}
-                onChange={handleUserVerifiedFilter}
-                className="input-field"
-              >
-                <option value="all">All Verification</option>
-                <option value="true">Verified</option>
-                <option value="false">Unverified</option>
-              </select>
             </div>
 
             {usersLoading ? (
@@ -456,7 +440,6 @@ const Analytics = () => {
                     <tr>
                       <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">User</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Role</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Verified</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Registrations</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Actions</th>
                     </tr>
@@ -489,16 +472,6 @@ const Analytics = () => {
                               <option value="admin">Admin</option>
                             </select>
                           </div>
-                        </td>
-                        <td className="px-4 py-3">
-                          {user.isEmailVerified ? (
-                            <Badge className="bg-green-500/10 text-green-500 border-green-500/20">
-                              <CheckCircle className="w-3 h-3 mr-1" />
-                              Verified
-                            </Badge>
-                          ) : (
-                            <span className="text-sm text-muted-foreground">No</span>
-                          )}
                         </td>
                         <td className="px-4 py-3 text-sm">
                           {user.stats?.registrationCount ?? 0}

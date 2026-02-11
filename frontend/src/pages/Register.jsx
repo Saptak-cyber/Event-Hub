@@ -44,7 +44,7 @@ const Register = () => {
         password: formData.password,
         role: formData.role,
       });
-      toast.success('Registration successful! Please check your email for verification.');
+      toast.success('Registration successful! You can now log in.');
       navigate('/login');
     } catch (error) {
       toast.error(error.response?.data?.message || 'Registration failed');

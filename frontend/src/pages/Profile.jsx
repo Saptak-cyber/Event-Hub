@@ -142,11 +142,6 @@ const Profile = () => {
                       className="w-full h-full object-cover"
                     />
                   </div>
-                  {user?.isEmailVerified && (
-                    <div className="absolute -bottom-1 -right-1 bg-green-500 rounded-full p-1">
-                      <CheckCircle className="w-4 h-4 text-white" />
-                    </div>
-                  )}
                 </div>
                 <div>
                   <h1 className="text-3xl font-bold mb-2">{user?.name}</h1>
@@ -156,16 +151,6 @@ const Profile = () => {
                       <Badge className="bg-primary-foreground/20 text-primary-foreground border-primary-foreground/30">
                         <Shield className="w-3 h-3 mr-1" />
                         Event Organizer
-                      </Badge>
-                    )}
-                    {user?.isEmailVerified ? (
-                      <Badge className="bg-green-500/20 text-green-100 border-green-500/30">
-                        <CheckCircle className="w-3 h-3 mr-1" />
-                        Verified
-                      </Badge>
-                    ) : (
-                      <Badge className="bg-yellow-500/20 text-yellow-100 border-yellow-500/30">
-                        Email not verified
                       </Badge>
                     )}
                   </div>

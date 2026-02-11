@@ -8,8 +8,6 @@ import {
   updatePassword,
   saveGoogleTokens,
   getGoogleAuthUrl,
-  verifyEmail,
-  resendVerification,
   forgotPassword,
   resetPassword
 } from '../controllers/authController.js';
@@ -33,10 +31,6 @@ router.get('/me', protect, getMe);
 router.get('/logout', protect, logout);
 router.put('/updatedetails', protect, updateDetails);
 router.put('/updatepassword', protect, updatePassword);
-
-// Email verification routes
-router.get('/verify-email/:token', verifyEmail);
-router.post('/resend-verification', protect, resendVerification);
 
 // Password reset routes
 router.post('/forgot-password', forgotPassword);

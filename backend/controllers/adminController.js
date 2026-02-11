@@ -192,7 +192,7 @@ export const getPlatformAnalytics = async (req, res) => {
 // @access  Private/Admin
 export const getAllUsers = async (req, res) => {
   try {
-    const { page = 1, limit = 20, search, role, verified } = req.query;
+    const { page = 1, limit = 20, search, role } = req.query;
 
     const pageNum = parseInt(page, 10);
     const limitNum = parseInt(limit, 10);
@@ -209,10 +209,6 @@ export const getAllUsers = async (req, res) => {
 
     if (role) {
       query.role = role;
-    }
-
-    if (verified !== undefined) {
-      query.isEmailVerified = verified === 'true';
     }
 
     const totalUsers = await User.countDocuments(query);

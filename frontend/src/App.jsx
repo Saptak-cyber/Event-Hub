@@ -1,7 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import Navbar from './components/Navbar';
-import EmailVerificationBanner from './components/EmailVerificationBanner';
 import ProtectedRoute from './components/ProtectedRoute';
 import LoadingSpinner from './components/LoadingSpinner';
 
@@ -17,7 +16,6 @@ import CreateEvent from './pages/CreateEvent';
 import EditEvent from './pages/EditEvent';
 import EventRegistrations from './pages/EventRegistrations';
 import Profile from './pages/Profile';
-import VerifyEmail from './pages/VerifyEmail';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import TicketView from './pages/TicketView';
@@ -35,7 +33,6 @@ function App() {
     <Router>
       <div className="min-h-screen bg-background">
         <Navbar />
-        <EmailVerificationBanner />
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<Home />} />
@@ -51,7 +48,6 @@ function App() {
             path="/register" 
             element={isAuthenticated ? <Navigate to="/dashboard" /> : <Register />} 
           />
-          <Route path="/verify-email/:token" element={<VerifyEmail />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password/:token" element={<ResetPassword />} />
           <Route path="/auth/google/callback" element={<GoogleCallback />} />
