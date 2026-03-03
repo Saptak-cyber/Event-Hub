@@ -140,7 +140,7 @@ All critical configuration issues have been resolved and **further consideration
 
 **UI Display:**
 - Payment column shows:
-  - ✅ Completed: `$50` with DollarSign icon
+  - ✅ Completed: `₹500` with DollarSign icon
   - ❌ Refunded: "Refunded" in red text
   - ⏳ Pending: "Pending" in yellow
   - 🆓 Free: "Free" in gray
@@ -149,7 +149,7 @@ All critical configuration issues have been resolved and **further consideration
 - `POST /payments/refund/:registrationId`
 
 **Backend Logic:**
-- Calls Stripe API to refund payment
+- Calls Razorpay API to refund payment
 - Updates registration `paymentStatus` to "refunded"
 - Sends refund confirmation email
 
@@ -185,27 +185,23 @@ All critical configuration issues have been resolved and **further consideration
 
 ### **6. Currency Symbol Corrections**
 
-#### ✅ Changed ₹ → $
-**Why:** Backend uses Stripe with USD/INR but test cards are USD. For consistency, we display `$` throughout.
+#### ✅ Changed $ → ₹
+**Why:** Backend uses Razorpay with INR currency, which is India-focused. For consistency, we display `₹` throughout.
 
 **Files Changed:**
 1. [PaymentModal.jsx](frontend/src/components/PaymentModal.jsx)
-   - Display price: `$50` instead of `₹50`
-   - Pay button: "Pay $50" instead of "Pay ₹50"
+   - Display price: `₹500` instead of `$500`
+   - Pay button: "Pay ₹500" instead of "Pay $500"
 
 2. [Analytics.jsx](frontend/src/pages/Analytics.jsx)
-   - Total revenue: `$1,234` instead of `₹1,234`
-   - Average revenue: `$45/event` instead of `₹45/event`
-   - Chart legend: "Revenue ($)" instead of "Revenue (₹)"
+   - Total revenue: `₹12,340` instead of `$1,234`
+   - Average revenue: `₹450/event` instead of `$45/event`
+   - Chart legend: "Revenue (₹)" instead of "Revenue ($)"
 
 3. [EventRegistrations.jsx](frontend/src/pages/EventRegistrations.jsx)
-   - Payment column: `$50` instead of `₹50`
+   - Payment column: `₹500` instead of `$500`
 
-**Note:** Backend still uses INR currency code in Stripe. To change to USD, update:
-```javascript
-// backend/controllers/paymentController.js
-currency: 'usd', // Change from 'inr'
-```
+**Note:** Backend uses INR currency code with Razorpay, which is the default for India-based payments.
 
 ---
 
@@ -269,7 +265,7 @@ None (all features integrated into existing files)
 3. Confirm refund dialog
 4. Watch loading spinner
 5. Payment status changes to "Refunded"
-6. Check Stripe dashboard for refund
+6. Check Razorpay dashboard for refund
 
 ### **Test Update Password**
 1. Go to `/profile`

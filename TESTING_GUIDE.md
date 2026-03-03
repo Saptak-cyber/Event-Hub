@@ -11,10 +11,10 @@
   - Updated [Login.jsx](frontend/src/pages/Login.jsx#L45) with "Forgot password?" link
 
 ### 2. **Payment Integration**
-- ✅ Stripe Payment Modal
-  - [PaymentModal.jsx](frontend/src/components/PaymentModal.jsx) - Stripe Elements integration
+- ✅ Razorpay Payment Modal
+  - [PaymentModal.jsx](frontend/src/components/PaymentModal.jsx) - Razorpay checkout integration
   - Updated [EventDetails.jsx](frontend/src/pages/EventDetails.jsx#L296-L316) to handle paid events
-  - Test card: 4242 4242 4242 4242 (any future date, any CVC)
+  - Test card: 4111 1111 1111 1111 (any future date, any CVV)
 
 ### 3. **QR Code Tickets**
 - ✅ Ticket Display & Download
@@ -45,10 +45,10 @@
 
 ### **Environment Setup**
 
-1. **Configure Stripe**
+1. **Configure Razorpay**
    ```bash
    # Add to frontend/.env
-   VITE_STRIPE_PUBLISHABLE_KEY=pk_test_your_stripe_publishable_key
+   VITE_RAZORPAY_KEY_ID=rzp_test_your_razorpay_key_id
    ```
 
 2. **Start Backend**
@@ -124,14 +124,14 @@
 
 ---
 
-### **Test Flow 3: Paid Event Registration with Stripe**
+### **Test Flow 3: Paid Event Registration with Razorpay**
 
 1. **Create Paid Event (as Admin)**
    - Login as admin/organizer
    - Go to `/admin/events/create`
    - Fill in event details
    - Check "Is Paid Event" checkbox
-   - Set price (e.g., 50)
+   - Set price (e.g., 500)
    - Create event
 
 2. **Register for Paid Event**
@@ -141,14 +141,15 @@
    - Click "Register" button
    - Payment modal should appear
 
-3. **Test Stripe Payment**
+3. **Test Razorpay Payment**
    - **Test Card Numbers:**
-     - Success: `4242 4242 4242 4242`
+     - Success: `4111 1111 1111 1111`
+     - Success: `5555 5555 5555 4444`
      - Decline: `4000 0000 0000 0002`
      - Insufficient Funds: `4000 0000 0000 9995`
+   - CVV: Any 3 digits (e.g., 123)
    - Expiry: Any future date (e.g., 12/25)
-   - CVC: Any 3 digits (e.g., 123)
-   - ZIP: Any 5 digits (e.g., 12345)
+   - **Test UPI ID:** success@razorpay
    
 4. **Verify Payment Success**
    - Should show success message

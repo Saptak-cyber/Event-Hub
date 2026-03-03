@@ -1,14 +1,15 @@
-import stripe from '../config/stripe.js';
+import razorpay from '../config/razorpay.js';
+import crypto from 'crypto';
 import Event from '../models/Event.js';
 import Registration from '../models/Registration.js';
 import User from '../models/User.js';
 
-// @desc    Create payment intent for event registration
+// @desc    Create Razorpay order for event registration
 // @route   POST /api/payments/create-intent/:eventId
 // @access  Private
 export const createPaymentIntent = async (req, res) => {
   try {
-    if (!stripe) {
+    if (!razorpay) {
       return res.status(503).json({
         success: false,
         message: 'Payment service not configured'
@@ -53,74 +54,82 @@ export const createPaymentIntent = async (req, res) => {
     // Get user details
     const user = await User.findById(userId);
 
-    // Create payment intent
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(event.price * 100), // Convert to cents
-      currency: 'inr', // Change to your currency
-      metadata: {
+    // Create Razorpay order
+    const order = await razorpay.orders.create({
+      amount: Math.round(event.price * 100), // Amount in paise
+      currency: 'INR',
+      receipt: `rcpt_${Date.now()}`, // Max 40 chars (Razorpay requirement)
+      notes: {
         eventId: event._id.toString(),
         userId: user._id.toString(),
         eventTitle: event.title,
         userEmail: user.email,
         userName: user.name
-      },
-      description: `Registration for ${event.title}`,
-      receipt_email: user.email,
+      }
     });
 
     res.status(200).json({
       success: true,
       data: {
-        clientSecret: paymentIntent.client_secret,
+        orderId: order.id,
         amount: event.price,
-        eventTitle: event.title
+        eventTitle: event.title,
+        currency: 'INR',
+        keyId: process.env.RAZORPAY_KEY_ID
       }
     });
   } catch (error) {
-    console.error('Payment intent creation error:', error);
+    console.error('Payment order creation error:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to create payment intent: ' + error.message
+      message: 'Failed to create payment order: ' + error.message
     });
   }
 };
 
-// @desc    Confirm payment and complete registration
+// @desc    Verify Razorpay payment and complete registration
 // @route   POST /api/payments/confirm
 // @access  Private
 export const confirmPayment = async (req, res) => {
   try {
-    if (!stripe) {
+    if (!razorpay) {
       return res.status(503).json({
         success: false,
         message: 'Payment service not configured'
       });
     }
 
-    const { paymentIntentId, eventId } = req.body;
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, eventId } = req.body;
     const userId = req.user.id;
 
-    if (!paymentIntentId || !eventId) {
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature || !eventId) {
       return res.status(400).json({
         success: false,
-        message: 'Payment intent ID and event ID are required'
+        message: 'All payment details are required'
       });
     }
 
-    // Retrieve payment intent from Stripe
-    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+    // Verify payment signature
+    const body = razorpay_order_id + '|' + razorpay_payment_id;
+    const expectedSignature = crypto
+      .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+      .update(body.toString())
+      .digest('hex');
 
-    if (paymentIntent.status !== 'succeeded') {
-      return res.status(400).json({
+    if (expectedSignature !== razorpay_signature) {
+      return res.status(401).json({
         success: false,
-        message: 'Payment not completed'
+        message: 'Payment verification failed'
       });
     }
 
-    // Verify the payment belongs to this user and event
+    // Fetch order details to verify metadata
+    const order = await razorpay.orders.fetch(razorpay_order_id);
+
+    // Verify the order belongs to this user and event
     if (
-      paymentIntent.metadata.userId !== userId ||
-      paymentIntent.metadata.eventId !== eventId
+      order.notes.userId !== userId ||
+      order.notes.eventId !== eventId
     ) {
       return res.status(401).json({
         success: false,
@@ -148,8 +157,8 @@ export const confirmPayment = async (req, res) => {
     if (registration) {
       // Update existing registration
       registration.paymentStatus = 'completed';
-      registration.paymentId = paymentIntentId;
-      registration.amount = paymentIntent.amount / 100;
+      registration.paymentId = razorpay_payment_id;
+      registration.amount = order.amount / 100;
       
       if (registration.status === 'waitlist' && event.registeredCount < event.capacity) {
         registration.status = 'confirmed';
@@ -179,8 +188,8 @@ export const confirmPayment = async (req, res) => {
         user: userId,
         status: registrationStatus,
         paymentStatus: 'completed',
-        paymentId: paymentIntentId,
-        amount: paymentIntent.amount / 100
+        paymentId: razorpay_payment_id,
+        amount: order.amount / 100
       });
 
       if (registrationStatus === 'confirmed') {
@@ -207,41 +216,47 @@ export const confirmPayment = async (req, res) => {
   }
 };
 
-// @desc    Handle Stripe webhook events
+// @desc    Handle Razorpay webhook events
 // @route   POST /api/payments/webhook
-// @access  Public (but verified by Stripe signature)
+// @access  Public (but verified by Razorpay signature)
 export const handleWebhook = async (req, res) => {
   try {
-    if (!stripe) {
+    if (!razorpay) {
       return res.status(503).send('Payment service not configured');
     }
 
-    const sig = req.headers['stripe-signature'];
-    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
 
     if (!webhookSecret) {
-      console.error('⚠️  Stripe webhook secret not configured');
+      console.error('⚠️  Razorpay webhook secret not configured');
       return res.status(400).send('Webhook secret not configured');
     }
 
-    let event;
+    // Verify webhook signature
+    const signature = req.headers['x-razorpay-signature'];
+    
+    const expectedSignature = crypto
+      .createHmac('sha256', webhookSecret)
+      .update(JSON.stringify(req.body))
+      .digest('hex');
 
-    try {
-      event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
-    } catch (err) {
-      console.error('⚠️  Webhook signature verification failed:', err.message);
-      return res.status(400).send(`Webhook Error: ${err.message}`);
+    if (signature !== expectedSignature) {
+      console.error('⚠️  Webhook signature verification failed');
+      return res.status(400).send('Webhook signature verification failed');
     }
 
+    const event = req.body.event;
+    const payload = req.body.payload;
+
     // Handle the event
-    switch (event.type) {
-      case 'payment_intent.succeeded':
-        const paymentIntent = event.data.object;
-        console.log('✅ Payment succeeded:', paymentIntent.id);
+    switch (event) {
+      case 'payment.captured':
+        const payment = payload.payment.entity;
+        console.log('✅ Payment captured:', payment.id);
         
         // Update registration status
         const registration = await Registration.findOne({
-          paymentId: paymentIntent.id
+          paymentId: payment.id
         });
         
         if (registration && registration.paymentStatus !== 'completed') {
@@ -250,8 +265,8 @@ export const handleWebhook = async (req, res) => {
         }
         break;
 
-      case 'payment_intent.payment_failed':
-        const failedPayment = event.data.object;
+      case 'payment.failed':
+        const failedPayment = payload.payment.entity;
         console.log('❌ Payment failed:', failedPayment.id);
         
         // Update registration to failed
@@ -265,13 +280,13 @@ export const handleWebhook = async (req, res) => {
         }
         break;
 
-      case 'charge.refunded':
-        const refund = event.data.object;
+      case 'refund.created':
+        const refund = payload.refund.entity;
         console.log('💰 Refund processed:', refund.id);
         
         // Update registration to refunded
         const refundedRegistration = await Registration.findOne({
-          paymentId: refund.payment_intent
+          paymentId: refund.payment_id
         });
         
         if (refundedRegistration) {
@@ -290,7 +305,7 @@ export const handleWebhook = async (req, res) => {
         break;
 
       default:
-        console.log(`Unhandled event type ${event.type}`);
+        console.log(`Unhandled event type ${event}`);
     }
 
     res.json({ received: true });
@@ -308,7 +323,7 @@ export const handleWebhook = async (req, res) => {
 // @access  Private/Admin
 export const refundPayment = async (req, res) => {
   try {
-    if (!stripe) {
+    if (!razorpay) {
       return res.status(503).json({
         success: false,
         message: 'Payment service not configured'
@@ -348,10 +363,13 @@ export const refundPayment = async (req, res) => {
       });
     }
 
-    // Create refund in Stripe
-    const refund = await stripe.refunds.create({
-      payment_intent: registration.paymentId,
-      reason: req.body.reason || 'requested_by_customer'
+    // Create refund in Razorpay
+    const refund = await razorpay.payments.refund(registration.paymentId, {
+      amount: Math.round(registration.amount * 100), // Full refund in paise
+      notes: {
+        reason: req.body.reason || 'requested_by_customer',
+        registrationId: registration._id.toString()
+      }
     });
 
     // Update registration

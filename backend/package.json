@@ -5,8 +5,8 @@
   "main": "server.js",
   "type": "module",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js"
+    "start": "node index.js",
+    "dev": "nodemon index.js"
   },
   "keywords": [
     "event",
@@ -36,7 +36,7 @@
     "node-cron": "^3.0.3",
     "nodemailer": "^6.9.7",
     "qrcode": "^1.5.4",
-    "stripe": "^20.3.1",
+    "razorpay": "^2.9.2",
     "winston": "^3.19.0",
     "xss-clean": "^0.1.4"
   },

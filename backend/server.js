@@ -1,5 +1,4 @@
 import express from 'express';
-import dotenv from 'dotenv';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
@@ -19,9 +18,6 @@ import registrationRoutes from './routes/registrationRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 
-// Load env vars
-dotenv.config();
-
 // Initialize express app
 const app = express();
 
@@ -31,15 +27,15 @@ connectDB();
 // Trust proxy (MUST be before rate limiting)
 app.set('trust proxy', 1);
 
-// Security middleware with Stripe exceptions
+// Security middleware with Razorpay exceptions
 app.use(
   helmet({
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'", "https://js.stripe.com"],
-        frameSrc: ["'self'", "https://js.stripe.com"],
-        connectSrc: ["'self'", "https://api.stripe.com", "https://r.stripe.com"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "https://checkout.razorpay.com"],
+        frameSrc: ["'self'", "https://checkout.razorpay.com"],
+        connectSrc: ["'self'", "https://api.razorpay.com", "https://lumberjack.razorpay.com"],
         imgSrc: ["'self'", "data:", "https:"],
         styleSrc: ["'self'", "'unsafe-inline'"],
       },
